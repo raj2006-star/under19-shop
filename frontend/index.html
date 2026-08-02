@@ -690,15 +690,16 @@ async function placeOrder(){
         ondismiss: function(){ payBtn.disabled = false; payBtn.textContent = 'Pay Now'; }
       }
     };
-    const rzp = new Razorpay(options);
-    rzp.open();
+    const rpz = new Razorpay(options);
+    rpz.open();
     payBtn.textContent = 'Pay Now';
   }catch(e){
     msg.className='msg show err'; msg.textContent = e.message;
     payBtn.disabled = false; payBtn.textContent = 'Pay Now';
   }
 }
-
+rzp = new Razorpay(options);
+    rzp.op
 /* ---------------- admin ---------------- */
 async function checkAdminPw(){
   const val = document.getElementById('adminPwInput').value;

@@ -43,10 +43,28 @@ function saveData(data) {
 let DB = loadData();
 
 //* ---------------- razorpay ---------------- */
-//const razorpay = new Razorpay({
-// key_id: process.env.RAZORPAY_KEY_ID,//key_secret: process.env.RAZORPAY_KEY_SECRET
-//});
+ const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+app.post('/create-order', async (req, res) => {
+  try {
+    const { amount } = req.body;
 
+    const options = {
+      amount: amount * 100, // rupees to paise
+      currency: "INR",
+      receipt: "U19_order_" + Date.now()
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    res.json(order);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Payment order failed" });
+  }
+});
 /* ---------------- admin auth ---------------- */
 const adminSessions = new Set();
 function requireAdmin(req, res, next) {
