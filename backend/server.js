@@ -42,11 +42,10 @@ function saveData(data) {
 }
 let DB = loadData();
 
-/* ---------------- razorpay ---------------- */
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+//* ---------------- razorpay ---------------- */
+//const razorpay = new Razorpay({
+// key_id: process.env.RAZORPAY_KEY_ID,//key_secret: process.env.RAZORPAY_KEY_SECRET
+//});
 
 /* ---------------- admin auth ---------------- */
 const adminSessions = new Set();
