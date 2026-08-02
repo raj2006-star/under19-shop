@@ -229,6 +229,14 @@ app.post('/api/verify-payment', (req, res) => {
 
 app.get('/api/admin/orders', requireAdmin, (req, res) => res.json(DB.orders));
 
+app.put('/api/admin/orders/:id', requireAdmin, (req, res) => {
+  const o = DB.orders.find(x => x.id === req.params.id);
+  if (!o) return res.status(404).json({ error: 'Order not found' });
+  if (req.body.status) o.status = req.body.status;
+  saveData(DB);
+  res.json(o);
+});
+
 /* ---------------- cash on delivery ---------------- */
 app.post('/api/place-cod-order', (req, res) => {
   const { orderDetails } = req.body;
