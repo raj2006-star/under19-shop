@@ -275,6 +275,7 @@
     <div class="field"><label>Name</label><div id="acctName" style="padding:11px 0; font-size:15px;"></div></div>
     <div class="field"><label>Phone</label><div id="acctPhone" style="padding:11px 0; font-size:15px;"></div></div>
     <div class="field"><label>Address</label><div id="acctAddress" style="padding:11px 0; font-size:14px; color:var(--text-muted);"></div></div>
+    <button class="ghostbtn" onclick="openMyOrders()">My Orders</button>
     <button class="ghostbtn" onclick="logoutUser()">Log Out</button>
   </div>
 </div>
@@ -336,6 +337,14 @@
   </div>
 </div>
 
+<div class="fullview" id="myOrdersView">
+  <div class="fullview-inner">
+    <div class="backrow" onclick="closeFullview('myOrdersView')">&larr; Back to shop</div>
+    <h2 style="font-size:32px; color:var(--gold-bright); margin-bottom:24px;">My Orders</h2>
+    <div id="myOrdersList"></div>
+  </div>
+</div>
+
 <div class="fullview" id="adminView">
   <div class="fullview-inner">
     <div class="backrow" onclick="closeFullview('adminView')">&larr; Exit admin</div>
@@ -356,6 +365,7 @@
           <div class="field"><label>Price (Rs.)</label><input type="number" id="npPrice" placeholder="1499"></div>
           <div class="field"><label>Emoji / Icon</label><input type="text" id="npIcon" placeholder="e.g. 👕" value="👕"></div>
           <div class="field"><label>SKU</label><input type="text" id="npSku" placeholder="U19-001"></div>
+          <div class="field"><label>Stock Quantity</label><input type="number" id="npQty" placeholder="10" min="0"></div>
         </div>
         <div class="field"><label>Description</label><textarea id="npDesc" rows="2" placeholder="Short description"></textarea></div>
         <div class="field"><label>Product Photo</label><input type="file" accept="image/*" id="npPhoto"></div>
@@ -488,7 +498,7 @@ function renderProducts(){
   grid.innerHTML = filtered.map(p => `
     <div class="card">
       <div class="imgwrap">
-        ${!p.stock ? '<div class="soldout-badge">SOLD OUT</div>' : ''}
+        ${!p.stock ? '<div class="soldout-badge">SOLD OUT</div>' : (p.qty!==undefined && p.qty<=5 ? `<div class="soldout-badge" style="color:var(--gold-bright); border-color:var(--gold);">Only ${p.qty} left</div>` : '')}
         <div class="shine"></div>
         ${p.img ? `<img src="${imgUrl(p.img)}" alt="${escapeHtml(p.name)}">` : `<span>${p.icon||'🖤'}</span>`}
       </div>
@@ -509,7 +519,11 @@ function addToCart(id){
   const p = PRODUCTS.find(x=>x.id===id);
   if(!p || !p.stock) return;
   const existing = CART.find(c=>c.id===id);
-  if(existing) existing.qty += 1;
+  const availableQty = p.qty !== undefined ? p.qty : Infinity;
+  if(existing){
+    if(existing.qty >= availableQty){ alert(`Only ${availableQty} of ${p.name} in stock.`); return; }
+    existing.qty += 1;
+  }
   else CART.push({id:p.id, name:p.name, price:p.price, icon:p.icon, img:p.img, qty:1});
   updateCartCount();
   renderCart();
@@ -518,6 +532,11 @@ function addToCart(id){
 function changeQty(id, delta){
   const item = CART.find(c=>c.id===id);
   if(!item) return;
+  if(delta>0){
+    const p = PRODUCTS.find(x=>x.id===id);
+    const availableQty = p && p.qty !== undefined ? p.qty : Infinity;
+    if(item.qty >= availableQty){ alert(`Only ${availableQty} of ${item.name} in stock.`); return; }
+  }
   item.qty += delta;
   if(item.qty<=0) CART = CART.filter(c=>c.id!==id);
   updateCartCount();
@@ -636,6 +655,45 @@ async function submitAuth(){
 }
 function logoutUser(){ CURRENT_USER = null; localStorage.removeItem('u19_user'); updateAccountLabel(); openAccount(); }
 
+/* ---------------- my orders (customer) ---------------- */
+async function openMyOrders(){
+  if(!CURRENT_USER) return;
+  closeAllDrawers();
+  openFullview('myOrdersView');
+  await renderMyOrders();
+}
+async function renderMyOrders(){
+  const wrap = document.getElementById('myOrdersList');
+  wrap.innerHTML = '<div class="empty">Loading your orders...</div>';
+  try{
+    const orders = await apiGet('/api/my-orders/' + encodeURIComponent(CURRENT_USER.phone));
+    if(orders.length===0){ wrap.innerHTML = '<div class="empty">You have no orders yet.</div>'; return; }
+    wrap.innerHTML = orders.slice().reverse().map(o => {
+      const pieceCount = o.items.reduce((a,i)=>a+i.qty,0);
+      const isCancelled = o.status === 'Cancelled';
+      return `
+      <div class="adminrow" style="flex-direction:column; align-items:flex-start; ${isCancelled?'opacity:0.55;':''}">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <h4>${o.id}</h4>
+          <span class="price">&#8377;${o.total}</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(o.status)} &middot; ${escapeHtml(o.paymentMethod)} &middot; ${pieceCount} ${pieceCount===1?'piece':'pieces'}</div>
+        <div style="font-size:12px; margin-top:8px;">${o.items.map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ')}</div>
+        ${!isCancelled ? `<button class="stockbtn out" style="margin-top:10px;" onclick="cancelMyOrder('${o.id}')">Cancel Order</button>` : `<span class="badge inactive" style="margin-top:10px;">CANCELLED</span>`}
+      </div>
+    `;}).join('');
+  }catch(e){
+    wrap.innerHTML = '<div class="empty">Could not load your orders.</div>';
+  }
+}
+async function cancelMyOrder(id){
+  if(!confirm('Cancel this order?')) return;
+  try{
+    await apiPut('/api/my-orders/' + id + '/cancel', {phone: CURRENT_USER.phone});
+    renderMyOrders();
+  }catch(e){ alert(e.message); }
+}
+
 /* ---------------- checkout + real payment ---------------- */
 function goToCheckout(){
   if(CART.length===0) return;
@@ -682,7 +740,7 @@ async function placeOrder(){
   const payBtn = document.getElementById('payBtn');
   const method = document.querySelector('input[name="payMethod"]:checked').value;
   const orderDetails = {
-    items: CART.map(c=>({name:c.name, qty:c.qty, price:c.price})),
+    items: CART.map(c=>({id:c.id, name:c.name, qty:c.qty, price:c.price})),
     subtotal: sub, discount: disc, total,
     coupon: APPLIED_COUPON ? APPLIED_COUPON.code : null,
     buyer: {name, phone, address}
@@ -785,7 +843,10 @@ async function renderAdminProducts(){
         </label>
       </div>
       <span>&#8377;</span><input class="priceinput" type="number" value="${p.price}" onchange="updateProductPrice('${p.id}', this.value)">
-      <button class="stockbtn ${p.stock?'in':'out'}" onclick="toggleStock('${p.id}')">${p.stock?'IN STOCK':'SOLD OUT'}</button>
+      <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted);">Qty
+        <input class="priceinput" style="width:60px;" type="number" min="0" value="${p.qty!==undefined?p.qty:0}" onchange="updateProductQty('${p.id}', this.value)">
+      </label>
+      <span class="badge ${p.stock?'active':'inactive'}">${p.stock?'IN STOCK':'SOLD OUT'}</span>
       <button class="iconbtn" onclick="deleteProduct('${p.id}')" title="Delete">&times;</button>
     </div>
   `).join('');
@@ -796,6 +857,7 @@ async function addProduct(){
   const icon = document.getElementById('npIcon').value.trim() || '🖤';
   const sku = document.getElementById('npSku').value.trim();
   const desc = document.getElementById('npDesc').value.trim();
+  const qty = document.getElementById('npQty').value;
   const photoFile = document.getElementById('npPhoto').files[0];
   if(!name || !price) return;
   const addBtn = document.querySelector('#adminTab-products .primarybtn');
@@ -804,10 +866,10 @@ async function addProduct(){
   try{
     let img = null;
     if(photoFile) img = (await uploadImage(photoFile)).url;
-    await apiPost('/api/admin/products', {name, price, icon, sku, desc, img}, true);
+    await apiPost('/api/admin/products', {name, price, icon, sku, desc, img, qty}, true);
     document.getElementById('npName').value=''; document.getElementById('npPrice').value='';
     document.getElementById('npSku').value=''; document.getElementById('npDesc').value='';
-    document.getElementById('npPhoto').value='';
+    document.getElementById('npPhoto').value=''; document.getElementById('npQty').value='';
     await renderAdminProducts();
     renderProducts();
   }catch(e){ alert(e.message); }
@@ -839,12 +901,12 @@ async function updateProductPrice(id, val){
     renderProducts();
   }catch(e){ alert(e.message); }
 }
-async function toggleStock(id){
-  const p = PRODUCTS.find(x=>x.id===id);
-  if(!p) return;
-  await apiPut('/api/admin/products/' + id, {stock: !p.stock}, true);
-  await renderAdminProducts();
-  renderProducts();
+async function updateProductQty(id, val){
+  try{
+    await apiPut('/api/admin/products/' + id, {qty: parseInt(val)||0}, true);
+    await renderAdminProducts();
+    renderProducts();
+  }catch(e){ alert(e.message); }
 }
 async function deleteProduct(id){
   await apiDelete('/api/admin/products/' + id, true);
