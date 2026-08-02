@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNDER19 COLLXN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  :root{
+    --bg:#0b0a08;
+    --bg-elev:#121009;
+    --surface:#17140d;
+    --surface-2:#1e1a10;
+    --gold:#c9a227;
+    --gold-bright:#f3d883;
+    --gold-dim:#6f5c1f;
+    --text:#f4eedd;
+    --text-muted:#a89c80;
+    --border-gold:rgba(201,162,39,0.28);
+    --danger:#c15a4f;
+    --success:#7a9e5c;
+    --radius:22px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:var(--bg); color:var(--text); font-family:'Manrope',sans-serif; overflow-x:hidden;}
+  body{min-height:100vh; position:relative;}
+  h1,h2,h3,.display{font-family:'Cormorant Garamond', serif; letter-spacing:0.02em;}
+  a{color:inherit;}
+  button{font-family:inherit; cursor:pointer;}
+  ::selection{background:var(--gold-dim); color:var(--gold-bright);}
+
+  #goldbg{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+  #goldbg .blob{ position:absolute; border-radius:50%; filter:blur(70px); opacity:0.16; mix-blend-mode:screen; background:radial-gradient(circle at 30% 30%, var(--gold-bright), var(--gold) 45%, transparent 72%);}
+  #goldbg .b1{ width:620px; height:620px; top:-180px; left:-140px; animation:float1 26s ease-in-out infinite;}
+  #goldbg .b2{ width:520px; height:520px; bottom:-200px; right:-120px; animation:float2 32s ease-in-out infinite;}
+  #goldbg .b3{ width:420px; height:420px; top:40%; left:55%; animation:float3 22s ease-in-out infinite;}
+  #goldbg .b4{ width:340px; height:340px; top:10%; right:15%; animation:float2 38s ease-in-out infinite reverse; opacity:0.10;}
+  @keyframes float1{ 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(80px,60px) scale(1.12);} }
+  @keyframes float2{ 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-70px,-50px) scale(0.9);} }
+  @keyframes float3{ 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(-40px,50px) scale(1.08);} 66%{transform:translate(50px,-30px) scale(0.95);} }
+
+  #app{position:relative; z-index:1;}
+
+  header{ display:flex; align-items:center; justify-content:space-between; gap:20px; padding:22px 5vw; position:sticky; top:0; z-index:50; background:rgba(11,10,8,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--border-gold);}
+  .logo{font-family:'Cormorant Garamond',serif; font-weight:700; font-size:26px; letter-spacing:0.12em; color:var(--gold-bright); cursor:pointer;}
+  .logo span{color:var(--text-muted); font-size:12px; letter-spacing:0.3em; display:block; font-family:'Manrope',sans-serif; margin-top:-2px; font-weight:600;}
+  nav{display:flex; align-items:center; gap:18px;}
+  .searchwrap{position:relative;}
+  .searchwrap input{ width:150px; background:var(--surface); border:1px solid var(--border-gold); color:var(--text); padding:10px 16px; border-radius:30px; outline:none; font-size:13px; transition:width .45s cubic-bezier(.2,.9,.25,1), border-color .3s, box-shadow .3s;}
+  .searchwrap input:focus{ width:230px; border-color:var(--gold); box-shadow:0 0 0 4px rgba(201,162,39,0.12);}
+  .navbtn{ background:transparent; border:1px solid var(--border-gold); color:var(--text); padding:9px 14px; border-radius:30px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; transition:.25s;}
+  .navbtn:hover{ border-color:var(--gold); color:var(--gold-bright); transform:translateY(-1px);}
+  .cartcount{background:var(--gold); color:#1a1508; font-size:11px; font-weight:800; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center;}
+
+  .hero{ text-align:center; padding:110px 5vw 70px; position:relative;}
+  .eyebrow{ letter-spacing:0.4em; font-size:11px; color:var(--gold); font-weight:700; margin-bottom:18px;}
+  .hero h1{ font-size:clamp(48px,9vw,110px); font-weight:700; line-height:0.95; background:linear-gradient(120deg, var(--gold-bright), var(--gold) 45%, #8a6f22 80%); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .hero p.tagline{ margin-top:22px; font-size:15px; letter-spacing:0.15em; color:var(--text-muted); font-weight:600; text-transform:uppercase;}
+  .hero p.tagline b{color:var(--gold-bright); font-weight:700;}
+  .heroline{ width:80px; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); margin:30px auto;}
+  .scrollcta{ margin-top:10px; display:inline-block; border:1px solid var(--border-gold); padding:12px 30px; border-radius:30px; font-size:12px; letter-spacing:0.15em; text-transform:uppercase; font-weight:700; color:var(--gold-bright); transition:.3s;}
+  .scrollcta:hover{background:var(--gold); color:#1a1508;}
+
+  .shopsection{ padding:40px 5vw 100px;}
+  .shoptop{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px;}
+  .shoptop h2{font-size:32px; color:var(--gold-bright);}
+  .shoptop span{font-size:12px; color:var(--text-muted); letter-spacing:0.1em;}
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:26px;}
+  .card{ background:var(--surface); border:1px solid var(--border-gold); border-radius:var(--radius); padding:16px; position:relative; overflow:hidden; cursor:pointer; transition:transform .4s cubic-bezier(.2,.9,.25,1), box-shadow .4s, border-color .4s;}
+  .card:hover{ transform:translateY(-8px) scale(1.015); border-color:var(--gold); box-shadow:0 22px 50px -18px rgba(201,162,39,0.35);}
+  .card .imgwrap{ aspect-ratio:1/1; border-radius:16px; background:linear-gradient(150deg,var(--surface-2),#0d0b06); display:flex; align-items:center; justify-content:center; font-size:52px; position:relative; overflow:hidden;}
+  .card .imgwrap img{ width:100%; height:100%; object-fit:cover; border-radius:16px; position:relative; z-index:0;}
+  .card .shine{ position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(120deg, transparent, rgba(243,216,131,0.25), transparent); transform:skewX(-20deg); transition:left .7s ease;}
+  .card:hover .shine{ left:130%;}
+  .soldout-badge{ position:absolute; top:10px; left:10px; background:#1a1508; color:var(--danger); border:1px solid var(--danger); font-size:10px; font-weight:800; letter-spacing:0.1em; padding:5px 10px; border-radius:20px;}
+  .card h3{ font-family:'Manrope'; font-size:15px; font-weight:700; margin-top:14px; color:var(--text);}
+  .card .sku{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted); margin-top:2px; letter-spacing:0.05em;}
+  .card .pricerow{ display:flex; align-items:center; justify-content:space-between; margin-top:10px;}
+  .price{ font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:700; color:var(--gold-bright);}
+  .addbtn{ background:var(--gold); color:#1a1508; border:none; padding:8px 14px; border-radius:20px; font-size:12px; font-weight:800; transition:.25s;}
+  .addbtn:hover{ background:var(--gold-bright); transform:scale(1.05);}
+  .addbtn:disabled{ background:var(--surface-2); color:var(--text-muted); cursor:not-allowed;}
+  .empty{ text-align:center; padding:60px 20px; color:var(--text-muted); font-size:14px;}
+
+  footer{ padding:40px 5vw; border-top:1px solid var(--border-gold); text-align:center; color:var(--text-muted); font-size:12px; letter-spacing:0.05em;}
+  footer .admin-link{ margin-top:10px; display:inline-block; color:var(--text-muted); opacity:0.5; font-size:11px; text-decoration:underline; transition:.2s;}
+  footer .admin-link:hover{ opacity:1; color:var(--gold);}
+
+  .overlay{ position:fixed; inset:0; background:rgba(5,4,2,0.6); backdrop-filter:blur(4px); z-index:90; opacity:0; pointer-events:none; transition:opacity .3s;}
+  .overlay.open{opacity:1; pointer-events:all;}
+  .drawer{ position:fixed; top:0; right:-420px; width:min(420px,92vw); height:100%; background:var(--bg-elev); border-left:1px solid var(--border-gold); z-index:95; transition:right .45s cubic-bezier(.2,.9,.25,1); display:flex; flex-direction:column; padding:26px 22px; overflow-y:auto;}
+  .drawer.open{ right:0;}
+  .drawer h2{ font-size:26px; color:var(--gold-bright); margin-bottom:20px;}
+  .closebtn{ position:absolute; top:22px; right:22px; background:none; border:none; color:var(--text-muted); font-size:20px;}
+  .closebtn:hover{color:var(--gold);}
+
+  .cartitem{ display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--border-gold); align-items:center;}
+  .cartitem .ci-img{ width:56px; height:56px; border-radius:12px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-size:24px; overflow:hidden;}
+  .cartitem .ci-img img{width:100%; height:100%; object-fit:cover;}
+  .cartitem .ci-info{flex:1;}
+  .cartitem .ci-info h4{font-size:14px; font-weight:700;}
+  .cartitem .ci-info .price{font-size:13px;}
+  .qtybtns{ display:flex; align-items:center; gap:8px; margin-top:6px;}
+  .qtybtns button{ width:22px; height:22px; border-radius:50%; border:1px solid var(--border-gold); background:transparent; color:var(--text); font-size:13px; line-height:1;}
+  .qtybtns button:hover{border-color:var(--gold); color:var(--gold-bright);}
+  .removebtn{background:none; border:none; color:var(--danger); font-size:12px; text-decoration:underline;}
+
+  .carttotal{ margin-top:auto; padding-top:20px; border-top:1px solid var(--border-gold);}
+  .totalrow{ display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px; color:var(--text-muted);}
+  .totalrow.grand{ font-size:18px; color:var(--text); font-weight:800; margin-top:10px;}
+  .totalrow.grand .price{font-size:20px;}
+
+  .field{ margin-bottom:14px;}
+  .field label{ display:block; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; font-weight:700;}
+  .field input, .field textarea, .field select{ width:100%; background:var(--surface); border:1px solid var(--border-gold); color:var(--text); padding:11px 14px; border-radius:12px; outline:none; font-size:14px; transition:.25s; font-family:inherit;}
+  .field input:focus, .field textarea:focus, .field select:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,39,0.14);}
+  .primarybtn{ width:100%; background:var(--gold); color:#1a1508; border:none; padding:14px; border-radius:14px; font-weight:800; font-size:14px; letter-spacing:0.03em; transition:.25s; margin-top:6px;}
+  .primarybtn:hover{ background:var(--gold-bright); transform:translateY(-1px);}
+  .primarybtn:disabled{ background:var(--surface-2); color:var(--text-muted);}
+  .ghostbtn{ width:100%; background:transparent; color:var(--text); border:1px solid var(--border-gold); padding:12px; border-radius:14px; font-weight:700; font-size:13px; margin-top:10px; transition:.2s;}
+  .ghostbtn:hover{ border-color:var(--gold); color:var(--gold-bright);}
+  .switchline{ text-align:center; font-size:12px; color:var(--text-muted); margin-top:16px;}
+  .switchline a{ color:var(--gold-bright); text-decoration:underline; cursor:pointer;}
+  .msg{ font-size:12px; padding:10px 12px; border-radius:10px; margin-bottom:14px; display:none;}
+  .msg.show{display:block;}
+  .msg.err{ background:rgba(193,90,79,0.12); color:#e2a49c; border:1px solid rgba(193,90,79,0.4);}
+  .msg.ok{ background:rgba(122,158,92,0.12); color:#b9d6a4; border:1px solid rgba(122,158,92,0.4);}
+  .couponrow{ display:flex; gap:8px; margin-bottom:14px;}
+  .couponrow input{flex:1;}
+  .couponrow button{ background:transparent; border:1px solid var(--gold); color:var(--gold-bright); padding:0 16px; border-radius:12px; font-weight:700; font-size:12px;}
+  .couponrow button:hover{ background:var(--gold); color:#1a1508;}
+
+  .fullview{ position:fixed; inset:0; background:var(--bg); z-index:99; overflow-y:auto; display:none;}
+  .fullview.open{display:block;}
+  .fullview-inner{ max-width:900px; margin:0 auto; padding:40px 5vw 100px;}
+  .backrow{ display:flex; align-items:center; gap:10px; color:var(--text-muted); font-size:13px; margin-bottom:30px; cursor:pointer; width:fit-content;}
+  .backrow:hover{color:var(--gold-bright);}
+
+  .paycard{ background:var(--surface); border:1px solid var(--border-gold); border-radius:var(--radius); padding:28px;}
+  .disclaimer{ font-size:11px; color:var(--text-muted); line-height:1.6; margin-top:16px; padding:12px; border:1px dashed var(--border-gold); border-radius:12px;}
+
+  .admintabs{ display:flex; gap:10px; margin-bottom:26px; flex-wrap:wrap;}
+  .admintab{ padding:10px 18px; border-radius:20px; border:1px solid var(--border-gold); font-size:13px; font-weight:700; color:var(--text-muted);}
+  .admintab.active{ background:var(--gold); color:#1a1508; border-color:var(--gold);}
+  .adminrow{ background:var(--surface); border:1px solid var(--border-gold); border-radius:16px; padding:16px 18px; margin-bottom:12px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .adminrow .rimg{ width:44px; height:44px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; overflow:hidden;}
+  .adminrow .rimg img{width:100%; height:100%; object-fit:cover;}
+  .adminrow .rmain{ flex:1; min-width:160px;}
+  .adminrow h4{ font-size:14px; font-weight:700;}
+  .adminrow .rsku{font-family:'JetBrains Mono'; font-size:10px; color:var(--text-muted);}
+  .stockbtn{ font-size:11px; font-weight:800; padding:6px 12px; border-radius:20px; border:1px solid; letter-spacing:0.04em;}
+  .stockbtn.in{ color:var(--success); border-color:var(--success); background:rgba(122,158,92,0.1);}
+  .stockbtn.out{ color:var(--danger); border-color:var(--danger); background:rgba(193,90,79,0.1);}
+  .iconbtn{ background:transparent; border:1px solid var(--border-gold); color:var(--text-muted); width:32px; height:32px; border-radius:8px; font-size:14px;}
+  .iconbtn:hover{ border-color:var(--gold); color:var(--gold-bright);}
+  .priceinput{ width:90px; font-family:'JetBrains Mono'; background:var(--surface-2); border:1px solid var(--border-gold); color:var(--gold-bright); padding:6px 8px; border-radius:8px; font-size:13px;}
+  .addform{ background:var(--surface); border:1px solid var(--border-gold); border-radius:16px; padding:20px; margin-bottom:24px;}
+  .addform h3{ font-size:18px; color:var(--gold-bright); margin-bottom:14px;}
+  .formgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .badge{ font-size:10px; font-weight:800; padding:4px 10px; border-radius:16px; letter-spacing:0.05em;}
+  .badge.active{ color:var(--success); border:1px solid var(--success); background:rgba(122,158,92,0.1);}
+  .badge.inactive{ color:var(--text-muted); border:1px solid var(--border-gold);}
+  .setupwarn{ background:rgba(193,90,79,0.1); border:1px solid var(--danger); color:#e2a49c; padding:14px 18px; border-radius:14px; font-size:13px; margin-bottom:24px; display:none;}
+  .setupwarn.show{display:block;}
+
+  @media(max-width:640px){
+    header{padding:16px 4vw;}
+    .searchwrap input{width:38px; padding:10px; color:transparent;}
+    .searchwrap input:focus{width:160px; color:var(--text);}
+    nav{gap:10px;}
+    .navbtn span.lbl{display:none;}
+    .formgrid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+
+<body>
+
+<div id="goldbg">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+</div>
+
+<div id="app">
+  <div class="setupwarn" id="setupWarn">
+    This site can't reach its backend yet. Open index.html and set the <code>API_BASE</code> value at the top of the script to your deployed backend URL.
+  </div>
+
+  <header>
+    <div class="logo" onclick="scrollToTop()">UNDER19<span>C O L L X N</span></div>
+    <nav>
+      <div class="searchwrap">
+        <input id="searchInput" type="text" placeholder="Search collxn..." oninput="renderProducts()">
+      </div>
+      <button class="navbtn" onclick="openDrawer('cartDrawer')"><span class="lbl">Cart</span> <span class="cartcount" id="cartCount">0</span></button>
+      <button class="navbtn" onclick="openAccount()"><span class="lbl" id="accountLabel">Login</span></button>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="eyebrow">EST. FOR THE FEW</div>
+    <h1>UNDER19<br>COLLXN</h1>
+    <p class="tagline">Unique <b>&middot;</b> Underrated <b>&middot;</b> Premium</p>
+    <div class="heroline"></div>
+    <a class="scrollcta" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Enter the Collxn</a>
+  </section>
+  
+
+  <section class="shopsection" id="shop">
+    <div class="shoptop">
+      <h2>The Collxn</h2>
+      <span id="itemCountLabel">0 pieces</span>
+    </div>
+    <div class="grid" id="productGrid"></div>
+  </section>
+
+  <footer>
+    <div>UNDER19 COLLXN &mdash; unique. underrated. premium.</div>
+    <a class="admin-link" onclick="openDrawer('adminGate')">admin</a>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeAllDrawers()"></div>
+
+<div class="drawer" id="cartDrawer">
+  <button class="closebtn" onclick="closeAllDrawers()">&times;</button>
+  <h2>Your Bag</h2>
+  <div id="cartItemsWrap"></div>
+  <div class="carttotal" id="cartTotalWrap" style="display:none;">
+    <div class="couponrow">
+      <input type="text" id="couponInput" placeholder="Coupon code">
+      <button onclick="applyCoupon()">Apply</button>
+    </div>
+    <div id="couponMsg" class="msg"></div>
+    <div class="totalrow"><span>Subtotal</span><span class="price" id="subtotalVal">0</span></div>
+    <div class="totalrow" id="discountRow" style="display:none;"><span>Discount</span><span class="price" id="discountVal">0</span></div>
+    <div class="totalrow grand"><span>Total</span><span class="price" id="grandTotalVal">0</span></div>
+    <button class="primarybtn" onclick="goToCheckout()">Checkout</button>
+  </div>
+</div>
+
+<div class="drawer" id="accountDrawer">
+  <button class="closebtn" onclick="closeAllDrawers()">&times;</button>
+  <div id="accountLoggedOut">
+    <h2 id="authTitle">Sign In</h2>
+    <div class="msg" id="authMsg"></div>
+    <div id="authNameField" class="field" style="display:none;">
+      <label>Full Name</label>
+      <input type="text" id="authName" placeholder="Your name">
+    </div>
+    <div class="field">
+      <label>Phone Number</label>
+      <input type="tel" id="authPhone" placeholder="10-digit mobile number">
+    </div>
+    <div id="authAddressField" class="field" style="display:none;">
+      <label>Delivery Address</label>
+      <textarea id="authAddress" rows="3" placeholder="House no, street, city, pincode"></textarea>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="authPassword" placeholder="Password">
+    </div>
+    <button class="primarybtn" id="authSubmitBtn" onclick="submitAuth()">Sign In</button>
+    <div class="switchline" id="authSwitchLine">New here? <a onclick="toggleAuthMode()">Create an account</a></div>
+  </div>
+  <div id="accountLoggedIn" style="display:none;">
+    <h2>My Account</h2>
+    <div class="field"><label>Name</label><div id="acctName" style="padding:11px 0; font-size:15px;"></div></div>
+    <div class="field"><label>Phone</label><div id="acctPhone" style="padding:11px 0; font-size:15px;"></div></div>
+    <div class="field"><label>Address</label><div id="acctAddress" style="padding:11px 0; font-size:14px; color:var(--text-muted);"></div></div>
+    <button class="ghostbtn" onclick="logoutUser()">Log Out</button>
+  </div>
+</div>
+
+<div class="drawer" id="adminGate">
+  <button class="closebtn" onclick="closeAllDrawers()">&times;</button>
+  <h2>Admin Access</h2>
+  <div class="msg" id="adminGateMsg"></div>
+  <div class="field">
+    <label>Admin Password</label>
+    <input type="password" id="adminPwInput" placeholder="Enter admin password">
+  </div>
+  <button class="primarybtn" onclick="checkAdminPw()">Unlock Admin</button>
+</div>
+
+<div class="fullview" id="checkoutView">
+  <div class="fullview-inner">
+    <div class="backrow" onclick="closeFullview('checkoutView')">&larr; Back to shop</div>
+    <h2 style="font-size:32px; color:var(--gold-bright); margin-bottom:24px;">Checkout</h2>
+    <div style="display:grid; grid-template-columns:1.1fr 0.9fr; gap:30px;" id="checkoutGrid">
+      <div class="paycard">
+        <h3 style="font-size:16px; color:var(--gold-bright); margin-bottom:16px;">Delivery Details</h3>
+        <div class="field"><label>Full Name</label><input type="text" id="coName"></div>
+        <div class="field"><label>Phone Number</label><input type="tel" id="coPhone"></div>
+        <div class="field"><label>Delivery Address</label><textarea rows="3" id="coAddress"></textarea></div>
+        <div class="disclaimer">Payment is processed securely by Razorpay. You'll be asked for your card, UPI or other details inside their payment window — this site never sees or stores that information.</div>
+      </div>
+      <div class="paycard" style="height:fit-content;">
+        <h3 style="font-size:16px; color:var(--gold-bright); margin-bottom:16px;">Order Summary</h3>
+        <div id="checkoutItemsWrap"></div>
+        <div class="totalrow"><span>Subtotal</span><span class="price" id="coSubtotal">0</span></div>
+        <div class="totalrow" id="coDiscountRow" style="display:none;"><span>Discount</span><span class="price" id="coDiscount">0</span></div>
+        <div class="totalrow grand"><span>Total</span><span class="price" id="coGrandTotal">0</span></div>
+        <button class="primarybtn" id="payBtn" onclick="placeOrder()">Pay Now</button>
+        <div class="msg" id="checkoutMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fullview" id="confirmView">
+  <div class="fullview-inner" style="text-align:center; padding-top:100px;">
+    <div style="font-size:60px; color:var(--gold-bright);">&#10003;</div>
+    <h2 style="font-size:34px; color:var(--gold-bright); margin:20px 0 10px;">Order Confirmed</h2>
+    <p style="color:var(--text-muted);" id="confirmOrderId"></p>
+    <p style="color:var(--text-muted); margin-top:6px;">Thank you for shopping UNDER19 COLLXN.</p>
+    <a class="scrollcta" style="margin-top:30px;" onclick="closeFullview('confirmView'); scrollToTop();">Back to Shop</a>
+  </div>
+</div>
+
+<div class="fullview" id="adminView">
+  <div class="fullview-inner">
+    <div class="backrow" onclick="closeFullview('adminView')">&larr; Exit admin</div>
+    <h2 style="font-size:32px; color:var(--gold-bright); margin-bottom:6px;">Admin Panel</h2>
+    <p style="color:var(--text-muted); font-size:13px; margin-bottom:24px;">Manage products, coupons and orders for UNDER19 COLLXN.</p>
+    <div class="admintabs">
+      <div class="admintab active" data-tab="products" onclick="setAdminTab('products')">Products</div>
+      <div class="admintab" data-tab="coupons" onclick="setAdminTab('coupons')">Coupons</div>
+      <div class="admintab" data-tab="orders" onclick="setAdminTab('orders')">Orders</div>
+      <div class="admintab" data-tab="settings" onclick="setAdminTab('settings')">Settings</div>
+    </div>
+
+    <div id="adminTab-products">
+      <div class="addform">
+        <h3>Add New Product</h3>
+        <div class="formgrid">
+          <div class="field"><label>Name</label><input type="text" id="npName" placeholder="Product name"></div>
+          <div class="field"><label>Price (Rs.)</label><input type="number" id="npPrice" placeholder="1499"></div>
+          <div class="field"><label>Emoji / Icon</label><input type="text" id="npIcon" placeholder="e.g. 👕" value="👕"></div>
+          <div class="field"><label>SKU</label><input type="text" id="npSku" placeholder="U19-001"></div>
+        </div>
+        <div class="field"><label>Description</label><textarea id="npDesc" rows="2" placeholder="Short description"></textarea></div>
+        <div class="field"><label>Product Photo</label><input type="file" accept="image/*" id="npPhoto"></div>
+        <button class="primarybtn" onclick="addProduct()">Add Product</button>
+      </div>
+      <div id="adminProductList"></div>
+    </div>
+
+    <div id="adminTab-coupons" style="display:none;">
+      <div class="addform">
+        <h3>Create Coupon</h3>
+        <div class="formgrid">
+          <div class="field"><label>Code</label><input type="text" id="ncCode" placeholder="UNDER10"></div>
+          <div class="field"><label>Discount %</label><input type="number" id="ncPercent" placeholder="10"></div>
+        </div>
+        <button class="primarybtn" onclick="addCoupon()">Create Coupon</button>
+      </div>
+      <div id="adminCouponList"></div>
+    </div>
+
+    <div id="adminTab-orders" style="display:none;">
+      <div id="adminOrderList"></div>
+    </div>
+
+    <div id="adminTab-settings" style="display:none;">
+      <div class="addform">
+        <h3>Change Admin Password</h3>
+        <div class="field"><label>New Password</label><input type="password" id="newAdminPw" placeholder="New admin password"></div>
+        <button class="primarybtn" onclick="changeAdminPw()">Update Password</button>
+        <div class="msg" id="settingsMsg"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================
+   SET THIS to your deployed backend URL before publishing,
+   e.g. "https://under19-backend.onrender.com"
+   ========================================================== */
+const API_BASE = "http://localhost:4000";
+
+/* ---------------- api helpers ---------------- */
+async function apiGet(path){
+  const r = await fetch(API_BASE + path);
+  if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Request failed');
+  return r.json();
+}
+async function apiPost(path, body, adminAuth){
+  const headers = {'Content-Type':'application/json'};
+  if(adminAuth && ADMIN_TOKEN) headers['x-admin-token'] = ADMIN_TOKEN;
+  const r = await fetch(API_BASE + path, {method:'POST', headers, body: JSON.stringify(body||{})});
+  const data = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+async function apiPut(path, body, adminAuth){
+  const headers = {'Content-Type':'application/json'};
+  if(adminAuth && ADMIN_TOKEN) headers['x-admin-token'] = ADMIN_TOKEN;
+  const r = await fetch(API_BASE + path, {method:'PUT', headers, body: JSON.stringify(body||{})});
+  const data = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+async function apiDelete(path, adminAuth){
+  const headers = {};
+  if(adminAuth && ADMIN_TOKEN) headers['x-admin-token'] = ADMIN_TOKEN;
+  const r = await fetch(API_BASE + path, {method:'DELETE', headers});
+  const data = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+/* ---------------- state ---------------- */
+let PRODUCTS = [];
+let COUPONS_CACHE = {};
+let CART = [];
+let CURRENT_USER = JSON.parse(localStorage.getItem('u19_user') || 'null');
+let APPLIED_COUPON = null;
+let AUTH_MODE = 'login';
+let ADMIN_TOKEN = localStorage.getItem('u19_admin_token') || null;
+
+async function init(){
+  try{
+    PRODUCTS = await apiGet('/api/products');
+    document.getElementById('setupWarn').classList.remove('show');
+  }catch(e){
+    document.getElementById('setupWarn').classList.add('show');
+    PRODUCTS = [];
+  }
+  renderProducts();
+  updateAccountLabel();
+}
+init();
+
+function scrollToTop(){ window.scrollTo({top:0, behavior:'smooth'}); }
+
+/* ---------------- drawers ---------------- */
+function openDrawer(id){
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById(id).classList.add('open');
+  if(id==='cartDrawer') renderCart();
+}
+function closeAllDrawers(){
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelectorAll('.drawer').forEach(d=>d.classList.remove('open'));
+}
+function closeFullview(id){ document.getElementById(id).classList.remove('open'); }
+function openFullview(id){ document.getElementById(id).classList.add('open'); window.scrollTo(0,0); }
+
+/* ---------------- product rendering ---------------- */
+function renderProducts(){
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const grid = document.getElementById('productGrid');
+  const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q));
+  document.getElementById('itemCountLabel').textContent = filtered.length + (filtered.length===1?' piece':' pieces');
+  if(filtered.length===0){
+    grid.innerHTML = '<div class="empty">No pieces match your search.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(p => `
+    <div class="card">
+      <div class="imgwrap">
+        ${!p.stock ? '<div class="soldout-badge">SOLD OUT</div>' : ''}
+        <div class="shine"></div>
+        ${p.img ? `<img src="${imgUrl(p.img)}" alt="${escapeHtml(p.name)}">` : `<span>${p.icon||'🖤'}</span>`}
+      </div>
+      <h3>${escapeHtml(p.name)}</h3>
+      <div class="sku">${escapeHtml(p.sku||'')}</div>
+      <div class="pricerow">
+        <span class="price">&#8377;${p.price}</span>
+        <button class="addbtn" ${!p.stock?'disabled':''} onclick="addToCart('${p.id}')">${p.stock? 'Add':'Sold Out'}</button>
+      </div>
+    </div>
+  `).join('');
+}
+function imgUrl(img){ return img.startsWith('http') ? img : (API_BASE + img); }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ---------------- cart ---------------- */
+function addToCart(id){
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p || !p.stock) return;
+  const existing = CART.find(c=>c.id===id);
+  if(existing) existing.qty += 1;
+  else CART.push({id:p.id, name:p.name, price:p.price, icon:p.icon, img:p.img, qty:1});
+  updateCartCount();
+  renderCart();
+  openDrawer('cartDrawer');
+}
+function changeQty(id, delta){
+  const item = CART.find(c=>c.id===id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty<=0) CART = CART.filter(c=>c.id!==id);
+  updateCartCount();
+  renderCart();
+}
+function removeFromCart(id){
+  CART = CART.filter(c=>c.id!==id);
+  updateCartCount();
+  renderCart();
+}
+function updateCartCount(){
+  document.getElementById('cartCount').textContent = CART.reduce((a,c)=>a+c.qty,0);
+}
+function cartSubtotal(){ return CART.reduce((a,c)=>a + c.price*c.qty, 0); }
+function cartDiscount(sub){
+  if(!APPLIED_COUPON) return 0;
+  return Math.round(sub * (APPLIED_COUPON.discount/100));
+}
+function renderCart(){
+  const wrap = document.getElementById('cartItemsWrap');
+  const totalWrap = document.getElementById('cartTotalWrap');
+  if(CART.length===0){
+    wrap.innerHTML = '<div class="empty">Your bag is empty.</div>';
+    totalWrap.style.display = 'none';
+    return;
+  }
+  totalWrap.style.display = 'block';
+  wrap.innerHTML = CART.map(c => `
+    <div class="cartitem">
+      <div class="ci-img">${c.img ? `<img src="${imgUrl(c.img)}">` : (c.icon||'🖤')}</div>
+      <div class="ci-info">
+        <h4>${escapeHtml(c.name)}</h4>
+        <div class="price">&#8377;${c.price}</div>
+        <div class="qtybtns">
+          <button onclick="changeQty('${c.id}',-1)">-</button>
+          <span>${c.qty}</span>
+          <button onclick="changeQty('${c.id}',1)">+</button>
+          <button class="removebtn" onclick="removeFromCart('${c.id}')" style="margin-left:8px;">Remove</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  const sub = cartSubtotal();
+  const disc = cartDiscount(sub);
+  document.getElementById('subtotalVal').textContent = '\u20b9' + sub;
+  document.getElementById('grandTotalVal').textContent = '\u20b9' + (sub-disc);
+  const discRow = document.getElementById('discountRow');
+  if(disc>0){ discRow.style.display='flex'; document.getElementById('discountVal').textContent = '-\u20b9' + disc; }
+  else discRow.style.display = 'none';
+}
+async function applyCoupon(){
+  const code = document.getElementById('couponInput').value.trim();
+  const msg = document.getElementById('couponMsg');
+  if(!code) return;
+  try{
+    const c = await apiGet('/api/coupons/' + encodeURIComponent(code));
+    APPLIED_COUPON = c;
+    msg.className='msg show ok'; msg.textContent = `Coupon applied: ${c.discount}% off`;
+  }catch(e){
+    APPLIED_COUPON = null;
+    msg.className='msg show err'; msg.textContent = e.message;
+  }
+  renderCart();
+}
+
+/* ---------------- auth ---------------- */
+function updateAccountLabel(){
+  document.getElementById('accountLabel').textContent = CURRENT_USER ? CURRENT_USER.name.split(' ')[0] : 'Login';
+}
+function openAccount(){
+  openDrawer('accountDrawer');
+  if(CURRENT_USER){
+    document.getElementById('accountLoggedOut').style.display='none';
+    document.getElementById('accountLoggedIn').style.display='block';
+    document.getElementById('acctName').textContent = CURRENT_USER.name;
+    document.getElementById('acctPhone').textContent = CURRENT_USER.phone;
+    document.getElementById('acctAddress').textContent = CURRENT_USER.address || '—';
+  } else {
+    document.getElementById('accountLoggedOut').style.display='block';
+    document.getElementById('accountLoggedIn').style.display='none';
+  }
+}
+function toggleAuthMode(){
+  AUTH_MODE = AUTH_MODE==='login' ? 'signup' : 'login';
+  document.getElementById('authTitle').textContent = AUTH_MODE==='login' ? 'Sign In' : 'Create Account';
+  document.getElementById('authNameField').style.display = AUTH_MODE==='signup' ? 'block':'none';
+  document.getElementById('authAddressField').style.display = AUTH_MODE==='signup' ? 'block':'none';
+  document.getElementById('authSubmitBtn').textContent = AUTH_MODE==='login' ? 'Sign In':'Create Account';
+  document.getElementById('authSwitchLine').innerHTML = AUTH_MODE==='login'
+    ? 'New here? <a onclick="toggleAuthMode()">Create an account</a>'
+    : 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  document.getElementById('authMsg').className = 'msg';
+}
+async function submitAuth(){
+  const phone = document.getElementById('authPhone').value.trim();
+  const pw = document.getElementById('authPassword').value;
+  const msg = document.getElementById('authMsg');
+  if(!phone || !pw){ msg.className='msg show err'; msg.textContent='Please fill in all required fields.'; return; }
+  try{
+    let user;
+    if(AUTH_MODE==='signup'){
+      const name = document.getElementById('authName').value.trim();
+      const address = document.getElementById('authAddress').value.trim();
+      if(!name){ msg.className='msg show err'; msg.textContent='Please enter your name.'; return; }
+      user = await apiPost('/api/signup', {name, phone, address, password: pw});
+    } else {
+      user = await apiPost('/api/login', {phone, password: pw});
+    }
+    CURRENT_USER = user;
+    localStorage.setItem('u19_user', JSON.stringify(user));
+    updateAccountLabel();
+    openAccount();
+  }catch(e){
+    msg.className='msg show err'; msg.textContent = e.message;
+  }
+}
+function logoutUser(){ CURRENT_USER = null; localStorage.removeItem('u19_user'); updateAccountLabel(); openAccount(); }
+
+/* ---------------- checkout + real payment ---------------- */
+function goToCheckout(){
+  if(CART.length===0) return;
+  closeAllDrawers();
+  if(CURRENT_USER){
+    document.getElementById('coName').value = CURRENT_USER.name;
+    document.getElementById('coPhone').value = CURRENT_USER.phone;
+    document.getElementById('coAddress').value = CURRENT_USER.address || '';
+  }
+  renderCheckoutSummary();
+  openFullview('checkoutView');
+}
+function renderCheckoutSummary(){
+  const wrap = document.getElementById('checkoutItemsWrap');
+  wrap.innerHTML = CART.map(c => `
+    <div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border-gold);">
+      <span>${escapeHtml(c.name)} &times; ${c.qty}</span>
+      <span class="price">&#8377;${c.price*c.qty}</span>
+    </div>
+  `).join('');
+  const sub = cartSubtotal();
+  const disc = cartDiscount(sub);
+  document.getElementById('coSubtotal').textContent = '\u20b9'+sub;
+  document.getElementById('coGrandTotal').textContent = '\u20b9'+(sub-disc);
+  const row = document.getElementById('coDiscountRow');
+  if(disc>0){ row.style.display='flex'; document.getElementById('coDiscount').textContent='-\u20b9'+disc; }
+  else row.style.display='none';
+}
+async function placeOrder(){
+  const name = document.getElementById('coName').value.trim();
+  const phone = document.getElementById('coPhone').value.trim();
+  const address = document.getElementById('coAddress').value.trim();
+  const msg = document.getElementById('checkoutMsg');
+  if(!name || !phone || !address){ msg.className='msg show err'; msg.textContent='Please fill in your delivery details.'; return; }
+  const sub = cartSubtotal();
+  const disc = cartDiscount(sub);
+  const total = sub - disc;
+  const payBtn = document.getElementById('payBtn');
+  payBtn.disabled = true; payBtn.textContent = 'Preparing payment...';
+  try{
+    const orderInit = await apiPost('/api/create-order', {amount: total});
+    const options = {
+      key: orderInit.keyId,
+      amount: orderInit.amount,
+      currency: orderInit.currency,
+      name: 'UNDER19 COLLXN',
+      description: 'Order payment',
+      order_id: orderInit.orderId,
+      prefill: { name, contact: phone },
+      theme: { color: '#c9a227' },
+      handler: async function(response){
+        try{
+          const result = await apiPost('/api/verify-payment', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            orderDetails: {
+              items: CART.map(c=>({name:c.name, qty:c.qty, price:c.price})),
+              subtotal: sub, discount: disc, total,
+              coupon: APPLIED_COUPON ? APPLIED_COUPON.code : null,
+              buyer: {name, phone, address}
+            }
+          });
+          document.getElementById('confirmOrderId').textContent = 'Order ID: ' + result.orderId;
+          CART = []; APPLIED_COUPON = null;
+          updateCartCount();
+          closeFullview('checkoutView');
+          openFullview('confirmView');
+        }catch(e){
+          msg.className='msg show err'; msg.textContent = 'Payment succeeded but could not be confirmed: ' + e.message;
+        }
+        payBtn.disabled = false; payBtn.textContent = 'Pay Now';
+      },
+      modal: {
+        ondismiss: function(){ payBtn.disabled = false; payBtn.textContent = 'Pay Now'; }
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
+    payBtn.textContent = 'Pay Now';
+  }catch(e){
+    msg.className='msg show err'; msg.textContent = e.message;
+    payBtn.disabled = false; payBtn.textContent = 'Pay Now';
+  }
+}
+
+/* ---------------- admin ---------------- */
+async function checkAdminPw(){
+  const val = document.getElementById('adminPwInput').value;
+  const msg = document.getElementById('adminGateMsg');
+  try{
+    const res = await apiPost('/api/admin/login', {password: val});
+    ADMIN_TOKEN = res.token;
+    localStorage.setItem('u19_admin_token', ADMIN_TOKEN);
+    closeAllDrawers();
+    document.getElementById('adminPwInput').value='';
+    setAdminTab('products');
+    await Promise.all([renderAdminProducts(), renderAdminCoupons(), renderAdminOrders()]);
+    openFullview('adminView');
+  }catch(e){
+    msg.className='msg show err'; msg.textContent = e.message;
+  }
+}
+function setAdminTab(tab){
+  document.querySelectorAll('.admintab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  ['products','coupons','orders','settings'].forEach(t=>{
+    document.getElementById('adminTab-'+t).style.display = t===tab ? 'block':'none';
+  });
+}
+async function renderAdminProducts(){
+  const wrap = document.getElementById('adminProductList');
+  PRODUCTS = await apiGet('/api/products');
+  if(PRODUCTS.length===0){ wrap.innerHTML='<div class="empty">No products yet.</div>'; return; }
+  wrap.innerHTML = PRODUCTS.map(p => `
+    <div class="adminrow">
+      <div class="rimg">${p.img ? `<img src="${imgUrl(p.img)}">` : (p.icon||'🖤')}</div>
+      <div class="rmain">
+        <h4>${escapeHtml(p.name)}</h4>
+        <div class="rsku">${escapeHtml(p.sku||'')}</div>
+        <label class="iconbtn" style="display:inline-flex; align-items:center; justify-content:center; margin-top:6px; font-size:10px; width:auto; padding:4px 8px; cursor:pointer;">
+          Change Photo
+          <input type="file" accept="image/*" style="display:none;" onchange="updateProductPhoto('${p.id}', this)">
+        </label>
+      </div>
+      <span>&#8377;</span><input class="priceinput" type="number" value="${p.price}" onchange="updateProductPrice('${p.id}', this.value)">
+      <button class="stockbtn ${p.stock?'in':'out'}" onclick="toggleStock('${p.id}')">${p.stock?'IN STOCK':'SOLD OUT'}</button>
+      <button class="iconbtn" onclick="deleteProduct('${p.id}')" title="Delete">&times;</button>
+    </div>
+  `).join('');
+}
+async function addProduct(){
+  const name = document.getElementById('npName').value.trim();
+  const price = parseInt(document.getElementById('npPrice').value);
+  const icon = document.getElementById('npIcon').value.trim() || '🖤';
+  const sku = document.getElementById('npSku').value.trim();
+  const desc = document.getElementById('npDesc').value.trim();
+  const photoFile = document.getElementById('npPhoto').files[0];
+  if(!name || !price) return;
+  const addBtn = document.querySelector('#adminTab-products .primarybtn');
+  const original = addBtn.textContent;
+  addBtn.textContent = 'Adding...'; addBtn.disabled = true;
+  try{
+    let img = null;
+    if(photoFile) img = (await uploadImage(photoFile)).url;
+    await apiPost('/api/admin/products', {name, price, icon, sku, desc, img}, true);
+    document.getElementById('npName').value=''; document.getElementById('npPrice').value='';
+    document.getElementById('npSku').value=''; document.getElementById('npDesc').value='';
+    document.getElementById('npPhoto').value='';
+    await renderAdminProducts();
+    renderProducts();
+  }catch(e){ alert(e.message); }
+  addBtn.textContent = original; addBtn.disabled = false;
+}
+async function uploadImage(file){
+  const form = new FormData();
+  form.append('photo', file);
+  const r = await fetch(API_BASE + '/api/admin/upload-image', {
+    method:'POST', headers:{'x-admin-token': ADMIN_TOKEN}, body: form
+  });
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.error || 'Upload failed');
+  return data;
+}
+async function updateProductPhoto(id, input){
+  const file = input.files[0];
+  if(!file) return;
+  try{
+    const {url} = await uploadImage(file);
+    await apiPut('/api/admin/products/' + id, {img: url}, true);
+    await renderAdminProducts();
+    renderProducts();
+  }catch(e){ alert(e.message); }
+}
+async function updateProductPrice(id, val){
+  try{
+    await apiPut('/api/admin/products/' + id, {price: parseInt(val)}, true);
+    renderProducts();
+  }catch(e){ alert(e.message); }
+}
+async function toggleStock(id){
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p) return;
+  await apiPut('/api/admin/products/' + id, {stock: !p.stock}, true);
+  await renderAdminProducts();
+  renderProducts();
+}
+async function deleteProduct(id){
+  await apiDelete('/api/admin/products/' + id, true);
+  await renderAdminProducts();
+  renderProducts();
+}
+async function renderAdminCoupons(){
+  const wrap = document.getElementById('adminCouponList');
+  const coupons = await apiGet('/api/admin/coupons').catch(()=>[]);
+  if(coupons.length===0){ wrap.innerHTML='<div class="empty">No coupons yet.</div>'; return; }
+  wrap.innerHTML = coupons.map(c => `
+    <div class="adminrow">
+      <div class="rmain">
+        <h4>${escapeHtml(c.code)}</h4>
+        <div class="rsku">${c.discount}% off</div>
+      </div>
+      <span class="badge ${c.active?'active':'inactive'}">${c.active?'ACTIVE':'DISABLED'}</span>
+      <button class="stockbtn ${c.active?'out':'in'}" onclick="toggleCoupon('${c.code}', ${!c.active})">${c.active?'Disable':'Enable'}</button>
+      <button class="iconbtn" onclick="deleteCoupon('${c.code}')">&times;</button>
+    </div>
+  `).join('');
+}
+async function addCoupon(){
+  const code = document.getElementById('ncCode').value.trim();
+  const percent = parseInt(document.getElementById('ncPercent').value);
+  if(!code || !percent) return;
+  try{
+    await apiPost('/api/admin/coupons', {code, discount: percent}, true);
+    document.getElementById('ncCode').value=''; document.getElementById('ncPercent').value='';
+    renderAdminCoupons();
+  }catch(e){ alert(e.message); }
+}
+async function toggleCoupon(code, active){
+  await apiPut('/api/admin/coupons/' + code, {active}, true);
+  renderAdminCoupons();
+}
+async function deleteCoupon(code){
+  await apiDelete('/api/admin/coupons/' + code, true);
+  renderAdminCoupons();
+}
+async function renderAdminOrders(){
+  const wrap = document.getElementById('adminOrderList');
+  const orders = await apiGet('/api/admin/orders').catch(()=>[]);
+  if(orders.length===0){ wrap.innerHTML='<div class="empty">No orders yet.</div>'; return; }
+  wrap.innerHTML = orders.slice().reverse().map(o => `
+    <div class="adminrow" style="flex-direction:column; align-items:flex-start;">
+      <div style="display:flex; justify-content:space-between; width:100%;">
+        <h4>${o.id}</h4>
+        <span class="price">&#8377;${o.total}</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(o.buyer.name)} &middot; ${escapeHtml(o.buyer.phone)} &middot; ${escapeHtml(o.status)}</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${escapeHtml(o.buyer.address)}</div>
+      <div style="font-size:12px; margin-top:8px;">${o.items.map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ')}</div>
+    </div>
+  `).join('');
+}
+async function changeAdminPw(){
+  const val = document.getElementById('newAdminPw').value;
+  const msg = document.getElementById('settingsMsg');
+  try{
+    await apiPost('/api/admin/change-password', {newPassword: val}, true);
+    document.getElementById('newAdminPw').value='';
+    msg.className='msg show ok'; msg.textContent='Admin password updated.';
+  }catch(e){
+    msg.className='msg show err'; msg.textContent = e.message;
+  }
+}
+</script>
+</body>
+</html>
