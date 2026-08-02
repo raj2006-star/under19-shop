@@ -308,6 +308,17 @@
         <div class="totalrow"><span>Subtotal</span><span class="price" id="coSubtotal">0</span></div>
         <div class="totalrow" id="coDiscountRow" style="display:none;"><span>Discount</span><span class="price" id="coDiscount">0</span></div>
         <div class="totalrow grand"><span>Total</span><span class="price" id="coGrandTotal">0</span></div>
+        <div class="field">
+          <label>Payment Method</label>
+          <div style="display:flex; gap:10px; margin-top:4px;">
+            <label style="flex:1; display:flex; align-items:center; gap:8px; border:1px solid var(--border-gold); border-radius:12px; padding:10px 14px; cursor:pointer; font-size:13px;">
+              <input type="radio" name="payMethod" value="online" checked onchange="updatePayButtonLabel()"> Pay Online
+            </label>
+            <label style="flex:1; display:flex; align-items:center; gap:8px; border:1px solid var(--border-gold); border-radius:12px; padding:10px 14px; cursor:pointer; font-size:13px;">
+              <input type="radio" name="payMethod" value="cod" onchange="updatePayButtonLabel()"> Cash on Delivery
+            </label>
+          </div>
+        </div>
         <button class="primarybtn" id="payBtn" onclick="placeOrder()">Pay Now</button>
         <div class="msg" id="checkoutMsg"></div>
       </div>
@@ -388,8 +399,10 @@
 const API_BASE = "https://under19-shop.onrender.com";
 
 /* ---------------- api helpers ---------------- */
-async function apiGet(path){
-  const r = await fetch(API_BASE + path);
+async function apiGet(path, adminAuth){
+  const headers = {};
+  if(adminAuth && ADMIN_TOKEN) headers['x-admin-token'] = ADMIN_TOKEN;
+  const r = await fetch(API_BASE + path, {headers});
   if(!r.ok) throw new Error((await r.json().catch(()=>({}))).error || 'Request failed');
   return r.json();
 }
@@ -633,6 +646,8 @@ function goToCheckout(){
     document.getElementById('coAddress').value = CURRENT_USER.address || '';
   }
   renderCheckoutSummary();
+  document.querySelector('input[name="payMethod"][value="online"]').checked = true;
+  updatePayButtonLabel();
   openFullview('checkoutView');
 }
 function renderCheckoutSummary(){
@@ -651,6 +666,10 @@ function renderCheckoutSummary(){
   if(disc>0){ row.style.display='flex'; document.getElementById('coDiscount').textContent='-\u20b9'+disc; }
   else row.style.display='none';
 }
+function updatePayButtonLabel(){
+  const method = document.querySelector('input[name="payMethod"]:checked').value;
+  document.getElementById('payBtn').textContent = method==='cod' ? 'Place Order (COD)' : 'Pay Now';
+}
 async function placeOrder(){
   const name = document.getElementById('coName').value.trim();
   const phone = document.getElementById('coPhone').value.trim();
@@ -661,6 +680,30 @@ async function placeOrder(){
   const disc = cartDiscount(sub);
   const total = sub - disc;
   const payBtn = document.getElementById('payBtn');
+  const method = document.querySelector('input[name="payMethod"]:checked').value;
+  const orderDetails = {
+    items: CART.map(c=>({name:c.name, qty:c.qty, price:c.price})),
+    subtotal: sub, discount: disc, total,
+    coupon: APPLIED_COUPON ? APPLIED_COUPON.code : null,
+    buyer: {name, phone, address}
+  };
+
+  if(method === 'cod'){
+    payBtn.disabled = true; payBtn.textContent = 'Placing order...';
+    try{
+      const result = await apiPost('/api/place-cod-order', { orderDetails });
+      document.getElementById('confirmOrderId').textContent = 'Order ID: ' + result.orderId;
+      CART = []; APPLIED_COUPON = null;
+      updateCartCount();
+      closeFullview('checkoutView');
+      openFullview('confirmView');
+    }catch(e){
+      msg.className='msg show err'; msg.textContent = e.message;
+    }
+    payBtn.disabled = false; payBtn.textContent = 'Place Order (COD)';
+    return;
+  }
+
   payBtn.disabled = true; payBtn.textContent = 'Preparing payment...';
   try{
     const orderInit = await apiPost('/api/create-order', {amount: total});
@@ -679,12 +722,7 @@ async function placeOrder(){
             razorpay_order_id: response.razorpay_order_id,
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_signature: response.razorpay_signature,
-            orderDetails: {
-              items: CART.map(c=>({name:c.name, qty:c.qty, price:c.price})),
-              subtotal: sub, discount: disc, total,
-              coupon: APPLIED_COUPON ? APPLIED_COUPON.code : null,
-              buyer: {name, phone, address}
-            }
+            orderDetails
           });
           document.getElementById('confirmOrderId').textContent = 'Order ID: ' + result.orderId;
           CART = []; APPLIED_COUPON = null;
@@ -815,7 +853,7 @@ async function deleteProduct(id){
 }
 async function renderAdminCoupons(){
   const wrap = document.getElementById('adminCouponList');
-  const coupons = await apiGet('/api/admin/coupons').catch(()=>[]);
+  const coupons = await apiGet('/api/admin/coupons', true).catch(()=>[]);
   if(coupons.length===0){ wrap.innerHTML='<div class="empty">No coupons yet.</div>'; return; }
   wrap.innerHTML = coupons.map(c => `
     <div class="adminrow">
@@ -849,7 +887,7 @@ async function deleteCoupon(code){
 }
 async function renderAdminOrders(){
   const wrap = document.getElementById('adminOrderList');
-  const orders = await apiGet('/api/admin/orders').catch(()=>[]);
+  const orders = await apiGet('/api/admin/orders', true).catch(()=>[]);
   if(orders.length===0){ wrap.innerHTML='<div class="empty">No orders yet.</div>'; return; }
   wrap.innerHTML = orders.slice().reverse().map(o => `
     <div class="adminrow" style="flex-direction:column; align-items:flex-start;">

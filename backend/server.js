@@ -218,6 +218,7 @@ app.post('/api/verify-payment', (req, res) => {
     total: orderDetails.total,
     coupon: orderDetails.coupon || null,
     buyer: orderDetails.buyer,
+    paymentMethod: 'Online',
     status: 'Paid',
     date: new Date().toISOString()
   };
@@ -227,6 +228,31 @@ app.post('/api/verify-payment', (req, res) => {
 });
 
 app.get('/api/admin/orders', requireAdmin, (req, res) => res.json(DB.orders));
+
+/* ---------------- cash on delivery ---------------- */
+app.post('/api/place-cod-order', (req, res) => {
+  const { orderDetails } = req.body;
+  if (!orderDetails || !orderDetails.items || !orderDetails.buyer) {
+    return res.status(400).json({ error: 'Missing order details' });
+  }
+  const order = {
+    id: 'U19' + Date.now().toString().slice(-8),
+    razorpayOrderId: null,
+    razorpayPaymentId: null,
+    items: orderDetails.items,
+    subtotal: orderDetails.subtotal,
+    discount: orderDetails.discount,
+    total: orderDetails.total,
+    coupon: orderDetails.coupon || null,
+    buyer: orderDetails.buyer,
+    paymentMethod: 'Cash on Delivery',
+    status: 'Pending (COD)',
+    date: new Date().toISOString()
+  };
+  DB.orders.push(order);
+  saveData(DB);
+  res.json({ ok: true, orderId: order.id });
+});
 
 app.get('/', (req, res) => res.send('UNDER19 COLLXN API is running.'));
 
