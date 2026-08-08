@@ -78,6 +78,11 @@
   .card .shine{ position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(120deg, transparent, rgba(243,216,131,0.25), transparent); transform:skewX(-20deg); transition:left .7s ease;}
   .card:hover .shine{ left:130%;}
   .soldout-badge{ position:absolute; top:10px; left:10px; background:#1a1508; color:var(--danger); border:1px solid var(--danger); font-size:10px; font-weight:800; letter-spacing:0.1em; padding:5px 10px; border-radius:20px;}
+  .imgnav{ position:absolute; top:50%; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; border:none; background:rgba(0,0,0,0.45); color:#fff; font-size:16px; line-height:1; cursor:pointer; z-index:2; display:flex; align-items:center; justify-content:center;}
+  .imgnav.prev{ left:8px;} .imgnav.next{ right:8px;}
+  .imgdots{ position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:center; gap:5px; z-index:2;}
+  .imgdots .dot{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.4);}
+  .imgdots .dot.active{ background:#fff;}
   .card h3{ font-family:'Manrope'; font-size:15px; font-weight:700; margin-top:14px; color:var(--text);}
   .card .sku{ font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-muted); margin-top:2px; letter-spacing:0.05em;}
   .card .pricerow{ display:flex; align-items:center; justify-content:space-between; margin-top:10px;}
@@ -368,7 +373,7 @@
           <div class="field"><label>Stock Quantity</label><input type="number" id="npQty" placeholder="10" min="0"></div>
         </div>
         <div class="field"><label>Description</label><textarea id="npDesc" rows="2" placeholder="Short description"></textarea></div>
-        <div class="field"><label>Product Photo</label><input type="file" accept="image/*" id="npPhoto"></div>
+        <div class="field"><label>Product Photos (select multiple for different styles)</label><input type="file" accept="image/*" id="npPhoto" multiple></div>
         <button class="primarybtn" onclick="addProduct()">Add Product</button>
       </div>
       <div id="adminProductList"></div>
@@ -443,6 +448,7 @@ async function apiDelete(path, adminAuth){
 
 /* ---------------- state ---------------- */
 let PRODUCTS = [];
+let IMAGE_INDEX = {};
 let COUPONS_CACHE = {};
 let CART = [];
 let CURRENT_USER = JSON.parse(localStorage.getItem('u19_user') || 'null');
@@ -495,12 +501,21 @@ function renderProducts(){
     grid.innerHTML = '<div class="empty">No pieces match your search.</div>';
     return;
   }
-  grid.innerHTML = filtered.map(p => `
+  grid.innerHTML = filtered.map(p => {
+    const imgs = productImages(p);
+    const idx = IMAGE_INDEX[p.id] || 0;
+    const currentImg = imgs[idx];
+    return `
     <div class="card">
       <div class="imgwrap">
         ${!p.stock ? '<div class="soldout-badge">SOLD OUT</div>' : (p.qty!==undefined && p.qty<=5 ? `<div class="soldout-badge" style="color:var(--gold-bright); border-color:var(--gold);">Only ${p.qty} left</div>` : '')}
         <div class="shine"></div>
-        ${p.img ? `<img src="${imgUrl(p.img)}" alt="${escapeHtml(p.name)}">` : `<span>${p.icon||'🖤'}</span>`}
+        ${currentImg ? `<img src="${imgUrl(currentImg)}" alt="${escapeHtml(p.name)}">` : `<span>${p.icon||'🖤'}</span>`}
+        ${imgs.length>1 ? `
+          <button class="imgnav prev" onclick="event.stopPropagation(); cycleImage('${p.id}', -1)">&lsaquo;</button>
+          <button class="imgnav next" onclick="event.stopPropagation(); cycleImage('${p.id}', 1)">&rsaquo;</button>
+          <div class="imgdots">${imgs.map((_,i)=>`<span class="dot ${i===idx?'active':''}"></span>`).join('')}</div>
+        ` : ''}
       </div>
       <h3>${escapeHtml(p.name)}</h3>
       <div class="sku">${escapeHtml(p.sku||'')}</div>
@@ -509,9 +524,9 @@ function renderProducts(){
         <button class="addbtn" ${!p.stock?'disabled':''} onclick="addToCart('${p.id}')">${p.stock? 'Add':'Sold Out'}</button>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 }
-function imgUrl(img){ return img.startsWith('http') ? img : (API_BASE + img); }
+function imgUrl(img){ return (img.startsWith('http') || img.startsWith('data:')) ? img : (API_BASE + img); }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ---------------- cart ---------------- */
@@ -831,15 +846,23 @@ async function renderAdminProducts(){
   const wrap = document.getElementById('adminProductList');
   PRODUCTS = await apiGet('/api/products');
   if(PRODUCTS.length===0){ wrap.innerHTML='<div class="empty">No products yet.</div>'; return; }
-  wrap.innerHTML = PRODUCTS.map(p => `
-    <div class="adminrow">
-      <div class="rimg">${p.img ? `<img src="${imgUrl(p.img)}">` : (p.icon||'🖤')}</div>
+  wrap.innerHTML = PRODUCTS.map(p => {
+    const imgs = productImages(p);
+    return `
+    <div class="adminrow" style="flex-wrap:wrap;">
+      <div class="rimg-gallery" style="display:flex; gap:6px; flex-wrap:wrap;">
+        ${imgs.length ? imgs.map((im,idx)=>`
+          <div style="position:relative;">
+            <img src="${imgUrl(im)}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">
+            <button onclick="removeProductImage('${p.id}', ${idx})" title="Remove" style="position:absolute; top:-6px; right:-6px; width:16px;height:16px;border-radius:50%;background:var(--danger);color:#fff;border:none;font-size:10px;line-height:1;cursor:pointer;">&times;</button>
+          </div>`).join('') : `<div class="rimg">${p.icon||'🖤'}</div>`}
+      </div>
       <div class="rmain">
         <h4>${escapeHtml(p.name)}</h4>
         <div class="rsku">${escapeHtml(p.sku||'')}</div>
         <label class="iconbtn" style="display:inline-flex; align-items:center; justify-content:center; margin-top:6px; font-size:10px; width:auto; padding:4px 8px; cursor:pointer;">
-          Change Photo
-          <input type="file" accept="image/*" style="display:none;" onchange="updateProductPhoto('${p.id}', this)">
+          + Add Photos
+          <input type="file" accept="image/*" multiple style="display:none;" onchange="addProductImages('${p.id}', this)">
         </label>
       </div>
       <span>&#8377;</span><input class="priceinput" type="number" value="${p.price}" onchange="updateProductPrice('${p.id}', this.value)">
@@ -849,7 +872,7 @@ async function renderAdminProducts(){
       <span class="badge ${p.stock?'active':'inactive'}">${p.stock?'IN STOCK':'SOLD OUT'}</span>
       <button class="iconbtn" onclick="deleteProduct('${p.id}')" title="Delete">&times;</button>
     </div>
-  `).join('');
+  `;}).join('');
 }
 async function addProduct(){
   const name = document.getElementById('npName').value.trim();
@@ -858,15 +881,15 @@ async function addProduct(){
   const sku = document.getElementById('npSku').value.trim();
   const desc = document.getElementById('npDesc').value.trim();
   const qty = document.getElementById('npQty').value;
-  const photoFile = document.getElementById('npPhoto').files[0];
+  const photoFiles = Array.from(document.getElementById('npPhoto').files);
   if(!name || !price) return;
   const addBtn = document.querySelector('#adminTab-products .primarybtn');
   const original = addBtn.textContent;
   addBtn.textContent = 'Adding...'; addBtn.disabled = true;
   try{
-    let img = null;
-    if(photoFile) img = (await uploadImage(photoFile)).url;
-    await apiPost('/api/admin/products', {name, price, icon, sku, desc, img, qty}, true);
+    const images = [];
+    for(const f of photoFiles){ images.push((await uploadImage(f)).url); }
+    await apiPost('/api/admin/products', {name, price, icon, sku, desc, images, qty}, true);
     document.getElementById('npName').value=''; document.getElementById('npPrice').value='';
     document.getElementById('npSku').value=''; document.getElementById('npDesc').value='';
     document.getElementById('npPhoto').value=''; document.getElementById('npQty').value='';
@@ -885,12 +908,34 @@ async function uploadImage(file){
   if(!r.ok) throw new Error(data.error || 'Upload failed');
   return data;
 }
-async function updateProductPhoto(id, input){
-  const file = input.files[0];
-  if(!file) return;
+function productImages(p){ return (p.images && p.images.length) ? p.images : (p.img ? [p.img] : []); }
+function cycleImage(id, dir){
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p) return;
+  const imgs = productImages(p);
+  if(imgs.length<2) return;
+  const cur = IMAGE_INDEX[id] || 0;
+  IMAGE_INDEX[id] = (cur + dir + imgs.length) % imgs.length;
+  renderProducts();
+}
+async function addProductImages(id, input){
+  const files = Array.from(input.files);
+  if(!files.length) return;
   try{
-    const {url} = await uploadImage(file);
-    await apiPut('/api/admin/products/' + id, {img: url}, true);
+    const p = PRODUCTS.find(x=>x.id===id);
+    const urls = [];
+    for(const f of files){ urls.push((await uploadImage(f)).url); }
+    const newImages = [...productImages(p), ...urls];
+    await apiPut('/api/admin/products/' + id, {images: newImages}, true);
+    await renderAdminProducts();
+    renderProducts();
+  }catch(e){ alert(e.message); }
+}
+async function removeProductImage(id, index){
+  const p = PRODUCTS.find(x=>x.id===id);
+  const newImages = productImages(p).filter((_,i)=>i!==index);
+  try{
+    await apiPut('/api/admin/products/' + id, {images: newImages}, true);
     await renderAdminProducts();
     renderProducts();
   }catch(e){ alert(e.message); }
