@@ -173,6 +173,13 @@
   .setupwarn{ background:rgba(193,90,79,0.1); border:1px solid var(--danger); color:#e2a49c; padding:14px 18px; border-radius:14px; font-size:13px; margin-bottom:24px; display:none;}
   .setupwarn.show{display:block;}
 
+  .sizepills{ display:flex; flex-wrap:wrap; gap:8px;}
+  .sizepill{ padding:8px 15px; border:1px solid var(--border-gold); border-radius:20px; font-size:12px; font-weight:800; cursor:pointer; color:var(--text-muted); transition:.2s; user-select:none;}
+  .sizepill:hover{ border-color:var(--gold);}
+  .sizepill.active{ background:var(--gold); color:#1a1508; border-color:var(--gold);}
+  .sizepill.small{ padding:4px 10px; font-size:10px;}
+  .ci-size{ font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:700;}
+
   @media(max-width:640px){
     header{padding:16px 4vw;}
     .searchwrap input{width:38px; padding:10px; color:transparent;}
@@ -251,6 +258,12 @@
   </div>
 </div>
 
+<div class="drawer" id="sizeDrawer">
+  <button class="closebtn" onclick="closeAllDrawers()">&times;</button>
+  <h2 id="sizeDrawerTitle">Select Size</h2>
+  <div id="sizeDrawerBody"></div>
+</div>
+
 <div class="drawer" id="accountDrawer">
   <button class="closebtn" onclick="closeAllDrawers()">&times;</button>
   <div id="accountLoggedOut">
@@ -266,7 +279,15 @@
     </div>
     <div id="authAddressField" class="field" style="display:none;">
       <label>Delivery Address</label>
-      <textarea id="authAddress" rows="3" placeholder="House no, street, city, pincode"></textarea>
+      <textarea id="authAddress" rows="3" placeholder="House no, street, area"></textarea>
+    </div>
+    <div id="authStateDistrictField" class="formgrid" style="display:none;">
+      <div class="field"><label>State</label><select id="authState"></select></div>
+      <div class="field"><label>District</label><input type="text" id="authDistrict" placeholder="District"></div>
+    </div>
+    <div id="authPincodeField" class="field" style="display:none;">
+      <label>Pincode</label>
+      <input type="text" id="authPincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric">
     </div>
     <div class="field">
       <label>Password</label>
@@ -305,7 +326,12 @@
         <h3 style="font-size:16px; color:var(--gold-bright); margin-bottom:16px;">Delivery Details</h3>
         <div class="field"><label>Full Name</label><input type="text" id="coName"></div>
         <div class="field"><label>Phone Number</label><input type="tel" id="coPhone"></div>
-        <div class="field"><label>Delivery Address</label><textarea rows="3" id="coAddress"></textarea></div>
+        <div class="field"><label>Delivery Address</label><textarea rows="3" id="coAddress" placeholder="House no, street, area"></textarea></div>
+        <div class="formgrid">
+          <div class="field"><label>State</label><select id="coState"></select></div>
+          <div class="field"><label>District</label><input type="text" id="coDistrict" placeholder="District"></div>
+        </div>
+        <div class="field"><label>Pincode</label><input type="text" id="coPincode" placeholder="6-digit pincode" maxlength="6" inputmode="numeric"></div>
         <div class="disclaimer">Payment is processed securely by Razorpay. You'll be asked for your card, UPI or other details inside their payment window — this site never sees or stores that information.</div>
       </div>
       <div class="paycard" style="height:fit-content;">
@@ -373,6 +399,10 @@
           <div class="field"><label>Stock Quantity</label><input type="number" id="npQty" placeholder="10" min="0"></div>
         </div>
         <div class="field"><label>Description</label><textarea id="npDesc" rows="2" placeholder="Short description"></textarea></div>
+        <div class="field">
+          <label>Available Sizes</label>
+          <div class="sizepills" id="npSizes"></div>
+        </div>
         <div class="field"><label>Product Photos (select multiple for different styles)</label><input type="file" accept="image/*" id="npPhoto" multiple></div>
         <button class="primarybtn" onclick="addProduct()">Add Product</button>
       </div>
@@ -455,6 +485,23 @@ let CURRENT_USER = JSON.parse(localStorage.getItem('u19_user') || 'null');
 let APPLIED_COUPON = null;
 let AUTH_MODE = 'login';
 let ADMIN_TOKEN = localStorage.getItem('u19_admin_token') || null;
+let PENDING_ADD = null;
+
+const ALL_SIZES = ['S','M','L','XL','XXL','3XL'];
+const INDIA_STATES = ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Andaman and Nicobar Islands','Chandigarh','Dadra and Nagar Haveli and Daman and Diu','Delhi','Jammu and Kashmir','Ladakh','Lakshadweep','Puducherry'];
+
+function populateStateSelects(){
+  const opts = '<option value="">Select State</option>' + INDIA_STATES.map(s=>`<option value="${s}">${s}</option>`).join('');
+  ['authState','coState'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = opts;
+  });
+}
+function populateSizePicker(){
+  const wrap = document.getElementById('npSizes');
+  if(!wrap) return;
+  wrap.innerHTML = ALL_SIZES.map(s=>`<span class="sizepill" data-size="${s}" onclick="this.classList.toggle('active')">${s}</span>`).join('');
+}
 
 async function init(){
   try{
@@ -464,6 +511,8 @@ async function init(){
     document.getElementById('setupWarn').classList.add('show');
     PRODUCTS = [];
   }
+  populateStateSelects();
+  populateSizePicker();
   renderProducts();
   updateAccountLabel();
 }
@@ -521,7 +570,7 @@ function renderProducts(){
       <div class="sku">${escapeHtml(p.sku||'')}</div>
       <div class="pricerow">
         <span class="price">&#8377;${p.price}</span>
-        <button class="addbtn" ${!p.stock?'disabled':''} onclick="addToCart('${p.id}')">${p.stock? 'Add':'Sold Out'}</button>
+        <button class="addbtn" ${!p.stock?'disabled':''} onclick="event.stopPropagation(); openSizeDrawer('${p.id}')">${p.stock? 'Add':'Sold Out'}</button>
       </div>
     </div>
   `;}).join('');
@@ -529,36 +578,89 @@ function renderProducts(){
 function imgUrl(img){ return (img.startsWith('http') || img.startsWith('data:')) ? img : (API_BASE + img); }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* ---------------- cart ---------------- */
-function addToCart(id){
+/* ---------------- size + quantity picker ---------------- */
+function openSizeDrawer(id){
   const p = PRODUCTS.find(x=>x.id===id);
   if(!p || !p.stock) return;
-  const existing = CART.find(c=>c.id===id);
-  const availableQty = p.qty !== undefined ? p.qty : Infinity;
-  if(existing){
-    if(existing.qty >= availableQty){ alert(`Only ${availableQty} of ${p.name} in stock.`); return; }
-    existing.qty += 1;
+  PENDING_ADD = {id, size:null, qty:1};
+  document.getElementById('sizeDrawerTitle').textContent = p.name;
+  renderSizeDrawerBody(p);
+  openDrawer('sizeDrawer');
+}
+function renderSizeDrawerBody(p){
+  const sizes = (p.sizes && p.sizes.length) ? p.sizes : null;
+  const body = document.getElementById('sizeDrawerBody');
+  body.innerHTML = `
+    ${sizes ? `
+      <div class="field">
+        <label>Select Size</label>
+        <div class="sizepills">
+          ${sizes.map(s=>`<span class="sizepill ${PENDING_ADD.size===s?'active':''}" onclick="selectPendingSize('${s}')">${s}</span>`).join('')}
+        </div>
+      </div>
+    ` : ''}
+    <div class="field">
+      <label>Quantity (pieces)</label>
+      <div class="qtybtns" style="margin-top:4px;">
+        <button onclick="changePendingQty(-1)">-</button>
+        <span id="pendingQtyVal" style="min-width:18px; text-align:center; display:inline-block;">${PENDING_ADD.qty}</span>
+        <button onclick="changePendingQty(1)">+</button>
+      </div>
+    </div>
+    <div class="msg" id="sizeDrawerMsg"></div>
+    <button class="primarybtn" onclick="confirmAddToCart()">Add to Bag</button>
+  `;
+}
+function selectPendingSize(s){
+  PENDING_ADD.size = s;
+  const p = PRODUCTS.find(x=>x.id===PENDING_ADD.id);
+  renderSizeDrawerBody(p);
+}
+function changePendingQty(delta){
+  PENDING_ADD.qty = Math.max(1, PENDING_ADD.qty + delta);
+  document.getElementById('pendingQtyVal').textContent = PENDING_ADD.qty;
+}
+function confirmAddToCart(){
+  const p = PRODUCTS.find(x=>x.id===PENDING_ADD.id);
+  const msg = document.getElementById('sizeDrawerMsg');
+  if(p.sizes && p.sizes.length && !PENDING_ADD.size){
+    msg.className='msg show err'; msg.textContent='Please select a size.'; return;
   }
-  else CART.push({id:p.id, name:p.name, price:p.price, icon:p.icon, img:p.img, qty:1});
-  updateCartCount();
-  renderCart();
+  addToCart(p.id, PENDING_ADD.size, PENDING_ADD.qty);
+  closeAllDrawers();
   openDrawer('cartDrawer');
 }
-function changeQty(id, delta){
-  const item = CART.find(c=>c.id===id);
+
+/* ---------------- cart ---------------- */
+function addToCart(id, size, qtyToAdd){
+  qtyToAdd = qtyToAdd || 1;
+  size = size || null;
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p || !p.stock) return;
+  const existing = CART.find(c=>c.id===id && c.size===size);
+  const availableQty = p.qty !== undefined ? p.qty : Infinity;
+  const currentQty = existing ? existing.qty : 0;
+  if(currentQty + qtyToAdd > availableQty){ alert(`Only ${availableQty} of ${p.name} in stock.`); return; }
+  if(existing) existing.qty += qtyToAdd;
+  else CART.push({id:p.id, name:p.name, price:p.price, icon:p.icon, img:p.img, size, qty:qtyToAdd});
+  updateCartCount();
+  renderCart();
+}
+function changeQtyAt(idx, delta){
+  const item = CART[idx];
   if(!item) return;
   if(delta>0){
-    const p = PRODUCTS.find(x=>x.id===id);
+    const p = PRODUCTS.find(x=>x.id===item.id);
     const availableQty = p && p.qty !== undefined ? p.qty : Infinity;
     if(item.qty >= availableQty){ alert(`Only ${availableQty} of ${item.name} in stock.`); return; }
   }
   item.qty += delta;
-  if(item.qty<=0) CART = CART.filter(c=>c.id!==id);
+  if(item.qty<=0) CART.splice(idx,1);
   updateCartCount();
   renderCart();
 }
-function removeFromCart(id){
-  CART = CART.filter(c=>c.id!==id);
+function removeFromCartAt(idx){
+  CART.splice(idx,1);
   updateCartCount();
   renderCart();
 }
@@ -579,17 +681,18 @@ function renderCart(){
     return;
   }
   totalWrap.style.display = 'block';
-  wrap.innerHTML = CART.map(c => `
+  wrap.innerHTML = CART.map((c,idx) => `
     <div class="cartitem">
       <div class="ci-img">${c.img ? `<img src="${imgUrl(c.img)}">` : (c.icon||'🖤')}</div>
       <div class="ci-info">
         <h4>${escapeHtml(c.name)}</h4>
+        ${c.size ? `<div class="ci-size">Size: ${escapeHtml(c.size)}</div>` : ''}
         <div class="price">&#8377;${c.price}</div>
         <div class="qtybtns">
-          <button onclick="changeQty('${c.id}',-1)">-</button>
+          <button onclick="changeQtyAt(${idx},-1)">-</button>
           <span>${c.qty}</span>
-          <button onclick="changeQty('${c.id}',1)">+</button>
-          <button class="removebtn" onclick="removeFromCart('${c.id}')" style="margin-left:8px;">Remove</button>
+          <button onclick="changeQtyAt(${idx},1)">+</button>
+          <button class="removebtn" onclick="removeFromCartAt(${idx})" style="margin-left:8px;">Remove</button>
         </div>
       </div>
     </div>
@@ -618,6 +721,11 @@ async function applyCoupon(){
 }
 
 /* ---------------- auth ---------------- */
+function formatAddress(u){
+  if(!u) return '—';
+  const parts = [u.address, u.district, u.state, u.pincode].filter(Boolean);
+  return parts.length ? parts.join(', ') : '—';
+}
 function updateAccountLabel(){
   document.getElementById('accountLabel').textContent = CURRENT_USER ? CURRENT_USER.name.split(' ')[0] : 'Login';
 }
@@ -628,7 +736,7 @@ function openAccount(){
     document.getElementById('accountLoggedIn').style.display='block';
     document.getElementById('acctName').textContent = CURRENT_USER.name;
     document.getElementById('acctPhone').textContent = CURRENT_USER.phone;
-    document.getElementById('acctAddress').textContent = CURRENT_USER.address || '—';
+    document.getElementById('acctAddress').textContent = formatAddress(CURRENT_USER);
   } else {
     document.getElementById('accountLoggedOut').style.display='block';
     document.getElementById('accountLoggedIn').style.display='none';
@@ -639,6 +747,8 @@ function toggleAuthMode(){
   document.getElementById('authTitle').textContent = AUTH_MODE==='login' ? 'Sign In' : 'Create Account';
   document.getElementById('authNameField').style.display = AUTH_MODE==='signup' ? 'block':'none';
   document.getElementById('authAddressField').style.display = AUTH_MODE==='signup' ? 'block':'none';
+  document.getElementById('authStateDistrictField').style.display = AUTH_MODE==='signup' ? 'grid':'none';
+  document.getElementById('authPincodeField').style.display = AUTH_MODE==='signup' ? 'block':'none';
   document.getElementById('authSubmitBtn').textContent = AUTH_MODE==='login' ? 'Sign In':'Create Account';
   document.getElementById('authSwitchLine').innerHTML = AUTH_MODE==='login'
     ? 'New here? <a onclick="toggleAuthMode()">Create an account</a>'
@@ -655,8 +765,13 @@ async function submitAuth(){
     if(AUTH_MODE==='signup'){
       const name = document.getElementById('authName').value.trim();
       const address = document.getElementById('authAddress').value.trim();
+      const state = document.getElementById('authState').value;
+      const district = document.getElementById('authDistrict').value.trim();
+      const pincode = document.getElementById('authPincode').value.trim();
       if(!name){ msg.className='msg show err'; msg.textContent='Please enter your name.'; return; }
-      user = await apiPost('/api/signup', {name, phone, address, password: pw});
+      if(!state || !district || !pincode){ msg.className='msg show err'; msg.textContent='Please enter State, District and Pincode.'; return; }
+      if(!/^\d{6}$/.test(pincode)){ msg.className='msg show err'; msg.textContent='Please enter a valid 6-digit pincode.'; return; }
+      user = await apiPost('/api/signup', {name, phone, address, state, district, pincode, password: pw});
     } else {
       user = await apiPost('/api/login', {phone, password: pw});
     }
@@ -693,7 +808,7 @@ async function renderMyOrders(){
           <span class="price">&#8377;${o.total}</span>
         </div>
         <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(o.status)} &middot; ${escapeHtml(o.paymentMethod)} &middot; ${pieceCount} ${pieceCount===1?'piece':'pieces'}</div>
-        <div style="font-size:12px; margin-top:8px;">${o.items.map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ')}</div>
+        <div style="font-size:12px; margin-top:8px;">${o.items.map(i=>escapeHtml(i.name)+(i.size?' ('+escapeHtml(i.size)+')':'')+' x'+i.qty).join(', ')}</div>
         ${!isCancelled ? `<button class="stockbtn out" style="margin-top:10px;" onclick="cancelMyOrder('${o.id}')">Cancel Order</button>` : `<span class="badge inactive" style="margin-top:10px;">CANCELLED</span>`}
       </div>
     `;}).join('');
@@ -717,6 +832,9 @@ function goToCheckout(){
     document.getElementById('coName').value = CURRENT_USER.name;
     document.getElementById('coPhone').value = CURRENT_USER.phone;
     document.getElementById('coAddress').value = CURRENT_USER.address || '';
+    document.getElementById('coState').value = CURRENT_USER.state || '';
+    document.getElementById('coDistrict').value = CURRENT_USER.district || '';
+    document.getElementById('coPincode').value = CURRENT_USER.pincode || '';
   }
   renderCheckoutSummary();
   document.querySelector('input[name="payMethod"][value="online"]').checked = true;
@@ -727,7 +845,7 @@ function renderCheckoutSummary(){
   const wrap = document.getElementById('checkoutItemsWrap');
   wrap.innerHTML = CART.map(c => `
     <div style="display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border-gold);">
-      <span>${escapeHtml(c.name)} &times; ${c.qty}</span>
+      <span>${escapeHtml(c.name)}${c.size?' ('+escapeHtml(c.size)+')':''} &times; ${c.qty}</span>
       <span class="price">&#8377;${c.price*c.qty}</span>
     </div>
   `).join('');
@@ -747,18 +865,22 @@ async function placeOrder(){
   const name = document.getElementById('coName').value.trim();
   const phone = document.getElementById('coPhone').value.trim();
   const address = document.getElementById('coAddress').value.trim();
+  const state = document.getElementById('coState').value;
+  const district = document.getElementById('coDistrict').value.trim();
+  const pincode = document.getElementById('coPincode').value.trim();
   const msg = document.getElementById('checkoutMsg');
-  if(!name || !phone || !address){ msg.className='msg show err'; msg.textContent='Please fill in your delivery details.'; return; }
+  if(!name || !phone || !address || !state || !district || !pincode){ msg.className='msg show err'; msg.textContent='Please fill in your delivery details, including State, District and Pincode.'; return; }
+  if(!/^\d{6}$/.test(pincode)){ msg.className='msg show err'; msg.textContent='Please enter a valid 6-digit pincode.'; return; }
   const sub = cartSubtotal();
   const disc = cartDiscount(sub);
   const total = sub - disc;
   const payBtn = document.getElementById('payBtn');
   const method = document.querySelector('input[name="payMethod"]:checked').value;
   const orderDetails = {
-    items: CART.map(c=>({id:c.id, name:c.name, qty:c.qty, price:c.price})),
+    items: CART.map(c=>({id:c.id, name:c.name, qty:c.qty, price:c.price, size:c.size||null})),
     subtotal: sub, discount: disc, total,
     coupon: APPLIED_COUPON ? APPLIED_COUPON.code : null,
-    buyer: {name, phone, address}
+    buyer: {name, phone, address, state, district, pincode}
   };
 
   if(method === 'cod'){
@@ -864,6 +986,9 @@ async function renderAdminProducts(){
           + Add Photos
           <input type="file" accept="image/*" multiple style="display:none;" onchange="addProductImages('${p.id}', this)">
         </label>
+        <div class="sizepills" style="margin-top:8px;">
+          ${ALL_SIZES.map(s=>`<span class="sizepill small ${((p.sizes||[]).includes(s))?'active':''}" onclick="toggleProductSize('${p.id}','${s}')">${s}</span>`).join('')}
+        </div>
       </div>
       <span>&#8377;</span><input class="priceinput" type="number" value="${p.price}" onchange="updateProductPrice('${p.id}', this.value)">
       <label style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted);">Qty
@@ -881,6 +1006,7 @@ async function addProduct(){
   const sku = document.getElementById('npSku').value.trim();
   const desc = document.getElementById('npDesc').value.trim();
   const qty = document.getElementById('npQty').value;
+  const sizes = Array.from(document.querySelectorAll('#npSizes .sizepill.active')).map(el=>el.dataset.size);
   const photoFiles = Array.from(document.getElementById('npPhoto').files);
   if(!name || !price) return;
   const addBtn = document.querySelector('#adminTab-products .primarybtn');
@@ -889,10 +1015,11 @@ async function addProduct(){
   try{
     const images = [];
     for(const f of photoFiles){ images.push((await uploadImage(f)).url); }
-    await apiPost('/api/admin/products', {name, price, icon, sku, desc, images, qty}, true);
+    await apiPost('/api/admin/products', {name, price, icon, sku, desc, images, qty, sizes}, true);
     document.getElementById('npName').value=''; document.getElementById('npPrice').value='';
     document.getElementById('npSku').value=''; document.getElementById('npDesc').value='';
     document.getElementById('npPhoto').value=''; document.getElementById('npQty').value='';
+    populateSizePicker();
     await renderAdminProducts();
     renderProducts();
   }catch(e){ alert(e.message); }
@@ -953,6 +1080,18 @@ async function updateProductQty(id, val){
     renderProducts();
   }catch(e){ alert(e.message); }
 }
+async function toggleProductSize(id, size){
+  const p = PRODUCTS.find(x=>x.id===id);
+  if(!p) return;
+  let sizes = [...(p.sizes||[])];
+  if(sizes.includes(size)) sizes = sizes.filter(s=>s!==size);
+  else sizes.push(size);
+  try{
+    await apiPut('/api/admin/products/' + id, {sizes}, true);
+    await renderAdminProducts();
+    renderProducts();
+  }catch(e){ alert(e.message); }
+}
 async function deleteProduct(id){
   await apiDelete('/api/admin/products/' + id, true);
   await renderAdminProducts();
@@ -1006,8 +1145,8 @@ async function renderAdminOrders(){
         <span class="price">&#8377;${o.total}</span>
       </div>
       <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(o.buyer.name)} &middot; ${escapeHtml(o.buyer.phone)} &middot; ${escapeHtml(o.status)} &middot; ${pieceCount} ${pieceCount===1?'piece':'pieces'}</div>
-      <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${escapeHtml(o.buyer.address)}</div>
-      <div style="font-size:12px; margin-top:8px;">${o.items.map(i=>escapeHtml(i.name)+' x'+i.qty).join(', ')}</div>
+      <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${escapeHtml([o.buyer.address, o.buyer.district, o.buyer.state, o.buyer.pincode].filter(Boolean).join(', '))}</div>
+      <div style="font-size:12px; margin-top:8px;">${o.items.map(i=>escapeHtml(i.name)+(i.size?' ('+escapeHtml(i.size)+')':'')+' x'+i.qty).join(', ')}</div>
       ${!isCancelled ? `<button class="stockbtn out" style="margin-top:10px;" onclick="cancelOrder('${o.id}')">Cancel Order</button>` : `<span class="badge inactive" style="margin-top:10px;">CANCELLED</span>`}
     </div>
   `;}).join('');

@@ -28,10 +28,10 @@ async function ensureSeedData() {
   const count = await productsCol.countDocuments();
   if (count === 0) {
     await productsCol.insertMany([
-      { _id: 'p1', name: 'Midnight Gold Tee', price: 1499, icon: '👕', img: null, images: [], sku: 'U19-001', desc: 'Heavyweight cotton tee with subtle gold foil print.', qty: 12, stock: true },
-      { _id: 'p2', name: 'Onyx Track Jacket', price: 2999, icon: '🧥', img: null, images: [], sku: 'U19-002', desc: 'Satin track jacket, black with gold piping.', qty: 8, stock: true },
-      { _id: 'p3', name: 'Reserve Cargo Pants', price: 2499, icon: '👖', img: null, images: [], sku: 'U19-003', desc: 'Relaxed fit cargo with embossed hardware.', qty: 0, stock: false },
-      { _id: 'p4', name: 'Gilded Track Shirt', price: 1799, icon: '🎽', img: null, images: [], sku: 'U19-004', desc: 'Mesh track shirt, limited run.', qty: 5, stock: true }
+      { _id: 'p1', name: 'Midnight Gold Tee', price: 1499, icon: '👕', img: null, images: [], sku: 'U19-001', desc: 'Heavyweight cotton tee with subtle gold foil print.', qty: 12, stock: true, sizes: ['S','M','L','XL'] },
+      { _id: 'p2', name: 'Onyx Track Jacket', price: 2999, icon: '🧥', img: null, images: [], sku: 'U19-002', desc: 'Satin track jacket, black with gold piping.', qty: 8, stock: true, sizes: ['S','M','L','XL','XXL'] },
+      { _id: 'p3', name: 'Reserve Cargo Pants', price: 2499, icon: '👖', img: null, images: [], sku: 'U19-003', desc: 'Relaxed fit cargo with embossed hardware.', qty: 0, stock: false, sizes: ['M','L','XL'] },
+      { _id: 'p4', name: 'Gilded Track Shirt', price: 1799, icon: '🎽', img: null, images: [], sku: 'U19-004', desc: 'Mesh track shirt, limited run.', qty: 5, stock: true, sizes: ['S','M','L'] }
     ]);
   }
   const settings = await settingsCol.findOne({ _id: 'main' });
@@ -129,17 +129,19 @@ app.get('/api/products', async (req, res) => {
   res.json(products.map(cleanDoc));
 });
 
+const VALID_SIZES = ['S', 'M', 'L', 'XL', 'XXL', '3XL'];
 app.post('/api/admin/products', requireAdmin, async (req, res) => {
-  const { name, price, icon, sku, desc, img, images, qty } = req.body;
+  const { name, price, icon, sku, desc, img, images, qty, sizes } = req.body;
   if (!name || !price) return res.status(400).json({ error: 'Name and price are required' });
   const stockQty = qty === undefined || qty === null || qty === '' ? 10 : Math.max(0, Number(qty));
   const imgList = Array.isArray(images) ? images.filter(Boolean) : (img ? [img] : []);
+  const sizeList = Array.isArray(sizes) ? sizes.filter(s => VALID_SIZES.includes(s)) : [];
   const product = {
     _id: 'p' + Date.now(),
     name, price: Number(price), icon: icon || '🖤',
     images: imgList, img: imgList[0] || null,
     sku: sku || ('U19-' + Math.floor(Math.random() * 900 + 100)),
-    desc: desc || '', qty: stockQty, stock: stockQty > 0
+    desc: desc || '', qty: stockQty, stock: stockQty > 0, sizes: sizeList
   };
   await productsCol.insertOne(product);
   res.json(cleanDoc(product));
@@ -155,6 +157,9 @@ app.put('/api/admin/products/:id', requireAdmin, async (req, res) => {
   if (updates.images !== undefined) {
     updates.images = Array.isArray(updates.images) ? updates.images.filter(Boolean) : [];
     updates.img = updates.images[0] || null;
+  }
+  if (updates.sizes !== undefined) {
+    updates.sizes = Array.isArray(updates.sizes) ? updates.sizes.filter(s => VALID_SIZES.includes(s)) : [];
   }
   const result = await productsCol.updateOne({ _id: req.params.id }, { $set: updates });
   if (result.matchedCount === 0) return res.status(404).json({ error: 'Product not found' });
@@ -207,19 +212,25 @@ app.delete('/api/admin/coupons/:code', requireAdmin, async (req, res) => {
 
 /* ---------------- buyer auth ---------------- */
 app.post('/api/signup', async (req, res) => {
-  const { name, phone, address, password } = req.body;
+  const { name, phone, address, state, district, pincode, password } = req.body;
   if (!name || !phone || !password) return res.status(400).json({ error: 'Please fill in all required fields' });
+  if (pincode && !/^\d{6}$/.test(pincode)) return res.status(400).json({ error: 'Please enter a valid 6-digit pincode' });
   const existing = await usersCol.findOne({ _id: phone });
   if (existing) return res.status(400).json({ error: 'An account with this phone number already exists' });
-  await usersCol.insertOne({ _id: phone, name, phone, address: address || '', passwordHash: bcrypt.hashSync(password, 10) });
-  res.json({ name, phone, address: address || '' });
+  const userDoc = {
+    _id: phone, name, phone,
+    address: address || '', state: state || '', district: district || '', pincode: pincode || '',
+    passwordHash: bcrypt.hashSync(password, 10)
+  };
+  await usersCol.insertOne(userDoc);
+  res.json({ name, phone, address: userDoc.address, state: userDoc.state, district: userDoc.district, pincode: userDoc.pincode });
 });
 
 app.post('/api/login', async (req, res) => {
   const { phone, password } = req.body;
   const u = await usersCol.findOne({ _id: phone });
   if (!u || !bcrypt.compareSync(password || '', u.passwordHash)) return res.status(401).json({ error: 'Incorrect phone number or password' });
-  res.json({ name: u.name, phone: u.phone, address: u.address });
+  res.json({ name: u.name, phone: u.phone, address: u.address, state: u.state || '', district: u.district || '', pincode: u.pincode || '' });
 });
 
 /* ---------------- payments (razorpay) ---------------- */
